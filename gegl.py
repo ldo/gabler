@@ -392,7 +392,6 @@ GTYPE.from_code = dict((t.code, t) for t in GTYPE)
 def list_operations() :
     nr_operations = ct.c_uint()
     c_ops_list = libgegl.gegl_list_operations(ct.byref(nr_operations))
-    print("returning %d ops" % nr_operations.value) # debug
     result = list(s.decode() for s in c_ops_list[:nr_operations.value])
     libglib2.g_free(ct.cast(c_ops_list, ct.c_void_p))
     return \
