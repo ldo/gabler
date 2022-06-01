@@ -12,13 +12,100 @@ import ctypes as ct
 from babl import \
     BABL
 
-# from glib-2.0/gobject/gparam.h:
-
-G_PARAM_USER_SHIFT = 8
-
 # from glib-2.0/glib/gtypes.h:
 
 GDestroyNotify = ct.CFUNCTYPE(None, ct.c_void_p)
+
+# from glib-2.0/gobject/glib-types.h:
+
+GType = ct.c_size_t
+
+# from glib-2.0/gobject/gtype.h:
+
+G_TYPE_FUNDAMENTAL_SHIFT = 2
+G_TYPE_MAKE_FUNDAMENTAL = lambda t : t << G_TYPE_FUNDAMENTAL_SHIFT
+G_TYPE_FUNDAMENTAL_MAX = 255 << G_TYPE_FUNDAMENTAL_SHIFT
+
+G_TYPE_INVALID = G_TYPE_MAKE_FUNDAMENTAL(0)
+G_TYPE_NONE = G_TYPE_MAKE_FUNDAMENTAL(1)
+G_TYPE_INTERFACE = G_TYPE_MAKE_FUNDAMENTAL(2)
+G_TYPE_CHAR = G_TYPE_MAKE_FUNDAMENTAL(3)
+G_TYPE_UCHAR = G_TYPE_MAKE_FUNDAMENTAL(4)
+G_TYPE_BOOLEAN = G_TYPE_MAKE_FUNDAMENTAL(5)
+G_TYPE_INT = G_TYPE_MAKE_FUNDAMENTAL(6)
+G_TYPE_UINT = G_TYPE_MAKE_FUNDAMENTAL(7)
+G_TYPE_LONG = G_TYPE_MAKE_FUNDAMENTAL(8)
+G_TYPE_ULONG = G_TYPE_MAKE_FUNDAMENTAL(9)
+G_TYPE_INT64 = G_TYPE_MAKE_FUNDAMENTAL(10)
+G_TYPE_UINT64 = G_TYPE_MAKE_FUNDAMENTAL(11)
+G_TYPE_ENUM = G_TYPE_MAKE_FUNDAMENTAL(12)
+G_TYPE_FLAGS = G_TYPE_MAKE_FUNDAMENTAL(13)
+G_TYPE_FLOAT = G_TYPE_MAKE_FUNDAMENTAL(14)
+G_TYPE_DOUBLE = G_TYPE_MAKE_FUNDAMENTAL(15)
+G_TYPE_STRING = G_TYPE_MAKE_FUNDAMENTAL(16) # nul-terminated C strings
+G_TYPE_POINTER = G_TYPE_MAKE_FUNDAMENTAL(17)
+G_TYPE_BOXED = G_TYPE_MAKE_FUNDAMENTAL(18)
+G_TYPE_PARAM = G_TYPE_MAKE_FUNDAMENTAL(19)
+G_TYPE_OBJECT = G_TYPE_MAKE_FUNDAMENTAL(20)
+G_TYPE_VARIANT = G_TYPE_MAKE_FUNDAMENTAL(21)
+
+class GTypeClass(ct.Structure) :
+    _fields_ = \
+        [
+            ("g_type", GType),
+        ]
+#end GTypeClass
+
+class GTypeInstance(ct.Structure) :
+    _fields_ = \
+        [
+            ("g_class", ct.POINTER(GTypeClass)),
+        ]
+#end GTypeInstance
+
+class GTypeInterface(ct.Structure) :
+    _fields_ = \
+        [
+            ("g_type", GType),
+            ("g_instance_type", GType),
+        ]
+#end GTypeInterface
+
+# from glib-2.0/gobject/gparam.h:
+
+GParamFlags = ct.c_uint
+# values for GParamFlags:
+G_PARAM_READABLE = 1 << 0
+G_PARAM_WRITABLE = 1 << 1
+G_PARAM_READWRITE = G_PARAM_READABLE | G_PARAM_WRITABLE
+G_PARAM_CONSTRUCT = 1 << 2
+G_PARAM_CONSTRUCT_ONLY = 1 << 3
+G_PARAM_LAX_VALIDATION = 1 << 4
+G_PARAM_STATIC_NAME = 1 << 5
+# GLIB_DEPRECATED_ENUMERATOR_IN_2_26 = G_PARAM_STATIC_NAME
+G_PARAM_STATIC_NICK = 1 << 6
+G_PARAM_STATIC_BLURB = 1 << 7
+G_PARAM_EXPLICIT_NOTIFY = 1 << 30
+G_PARAM_DEPRECATED = 1 << 31
+
+G_PARAM_USER_SHIFT = 8
+
+class GParamSpec(ct.Structure) :
+    _fields_ = \
+        [
+            ("g_type_instance", ct.POINTER(GTypeInstance)),
+            ("name", ct.c_char_p),
+            ("flags", GParamFlags),
+            ("value_type", GType),
+            ("owner_type", GType),
+            # private:
+            ("nick", ct.c_char_p),
+            ("blurb", ct.c_char_p),
+            ("qdata", ct.c_void_p),
+            ("ref_count", ct.c_uint),
+            ("param_id", ct.c_uint),
+        ]
+#end GParamSpec
 
 # from glib-2.0/gobject/gclosure.h:
 
@@ -122,11 +209,25 @@ class GEGL :
 
 #end GEGL
 
+libglib2 = ct.cdll.LoadLibrary("libglib-2.0.so.0")
 libgegl = ct.cdll.LoadLibrary("libgegl-0.4.so.0")
 
 #+
 # Routine arg/result types
 #-
+
+# from glib-2.0/glib/gmem.h:
+
+libglib2.g_malloc.argtypes = (ct.c_size_t,)
+libglib2.g_malloc.restype = ct.c_void_p
+libglib2.g_free.argtypes = (ct.c_void_p,)
+libglib2.g_free.restype = None
+
+def g_new(c_type, nr_elts) :
+    "approximate equivalent to g_new() macro in glib-2.0/glib/gmem.h."
+    return \
+        libglib2.g_malloc(ct.sizeof(c_type * nr_elts))
+#end g_new
 
 # from gegl-0.4/gegl-buffer.h:
 
@@ -205,3 +306,60 @@ libgegl.gegl_buffer_thaw_changed.argtypes = (GEGL.BufferPtr,)
 libgegl.gegl_buffer_thaw_changed.restype = None
 libgegl.gegl_buffer_flush_ext.argtypes = (GEGL.BufferPtr, ct.POINTER(GEGL.Rectangle))
 libgegl.gegl_buffer_flush_ext.restype = None
+
+# from gegl-0.4/gegl-operations.h:
+
+libgegl.gegl_list_operations.argtypes = (ct.POINTER(ct.c_uint),)
+libgegl.gegl_list_operations.restype = ct.POINTER(ct.c_char_p)
+libgegl.gegl_has_operation.argtypes = (ct.c_char_p,)
+libgegl.gegl_has_operation.restype = ct.c_bool
+libgegl.gegl_operation_list_properties.argtypes = (ct.c_char_p, ct.POINTER(ct.c_uint))
+libgegl.gegl_operation_list_properties.restype = ct.c_void_p # ct.POINTER(ct.POINTER(GParamSpec))
+libgegl.gegl_operation_find_property.argtypes = (ct.c_char_p, ct.c_char_p)
+libgegl.gegl_operation_find_property.restype = ct.c_void_p # ct.POINTER(GParamSpec)
+libgegl.gegl_operation_get_property_key.argtypes = (ct.c_char_p, ct.c_char_p, ct.c_char_p)
+libgegl.gegl_operation_get_property_key.restype = ct.c_char_p
+libgegl.gegl_operation_list_property_keys.argtypes = (ct.c_char_p, ct.c_char_p, ct.POINTER(ct.c_uint))
+libgegl.gegl_operation_list_property_keys.restype = ct.c_void_p # ct.POINTER(ct.c_char_p)
+libgegl.gegl_param_spec_get_property_key.argtypes = (ct.POINTER(GParamSpec), ct.c_char_p)
+libgegl.gegl_param_spec_get_property_key.restype = ct.c_char_p
+libgegl.gegl_param_spec_set_property_key.argtypes = (ct.POINTER(GParamSpec), ct.c_char_p, ct.c_char_p)
+libgegl.gegl_param_spec_set_property_key.restype = None
+libgegl.gegl_operation_list_keys.argtypes = (ct.c_char_p, ct.POINTER(ct.c_uint))
+libgegl.gegl_operation_list_keys = ct.c_void_p # ct.POINTER(ct.c_char_p)
+libgegl.gegl_operation_get_key.argtypes = (ct.c_char_p, ct.c_char_p)
+libgegl.gegl_operation_get_key.restype = ct.c_char_p
+
+# from gegl-0.4/gegl-apply.h:
+
+libgegl.gegl_apply_op.argtypes = (GEGL.BufferPtr, ct.c_char_p, ct.c_void_p) # varargs!
+libgegl.gegl_apply_op.restype = None
+libgegl.gegl_filter_op.argtypes = (GEGL.BufferPtr, ct.c_char_p, ct.c_void_p) # varargs!
+libgegl.gegl_filter_op.restype = GEGL.BufferPtr
+libgegl.gegl_render_op.argtypes = (GEGL.BufferPtr, GEGL.BufferPtr, ct.c_char_p, ct.c_void_p) # varargs!
+libgegl.gegl_render_op.restype = None
+# don’t bother with xxx_valist forms
+
+# from gegl-0.4/gegl-init.h:
+
+libgegl.gegl_init.argtypes = (ct.POINTER(ct.c_int), ct.POINTER(ct.c_char_p))
+libgegl.gegl_init.restype = None
+libgegl.gegl_exit.argtypes = ()
+libgegl.gegl_exit.restype = None
+
+def init(argv = None) :
+    "wrapper around gegl_init() which lets you control what args are passed." \
+    " You can pass sys.argv, or make up your own."
+    if argv == None :
+        argv = ()
+    #end if
+    c_argc = ct.c_int(len(argv))
+    c_argv = (ct.c_char_p * (len(argv) + 1))()
+    for i in range(len(argv)) :
+        c_argv[i] = argv[i].encode()
+    #end for
+    c_argv[len(argv)] = None
+    libgegl.gegl_init(c_argc, c_argv)
+    return \
+        list(v.decode() for v in c_argv[:c_argc.value])
+#end init
