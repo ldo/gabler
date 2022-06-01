@@ -517,3 +517,8 @@ def init(argv = None) :
     return \
         list(v.decode() for v in c_argv[:c_argc.value])
 #end init
+
+def exit() :
+    "cleanup after finishing with GEGL."
+    libgegl.gegl_exit()
+#end exit
