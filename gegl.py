@@ -7,6 +7,7 @@ using ctypes.
 # Licensed under the GNU Lesser General Public License v2.1 or later.
 #-
 
+import enum
 import ctypes as ct
 
 from babl import \
@@ -307,14 +308,14 @@ libgegl.gegl_buffer_thaw_changed.restype = None
 libgegl.gegl_buffer_flush_ext.argtypes = (GEGL.BufferPtr, ct.POINTER(GEGL.Rectangle))
 libgegl.gegl_buffer_flush_ext.restype = None
 
-# from gegl-0.4/gegl-operations.h:
+# from gegl-0.4/gegl-operations-util.h:
 
 libgegl.gegl_list_operations.argtypes = (ct.POINTER(ct.c_uint),)
 libgegl.gegl_list_operations.restype = ct.POINTER(ct.c_char_p)
 libgegl.gegl_has_operation.argtypes = (ct.c_char_p,)
 libgegl.gegl_has_operation.restype = ct.c_bool
 libgegl.gegl_operation_list_properties.argtypes = (ct.c_char_p, ct.POINTER(ct.c_uint))
-libgegl.gegl_operation_list_properties.restype = ct.c_void_p # ct.POINTER(ct.POINTER(GParamSpec))
+libgegl.gegl_operation_list_properties.restype = ct.POINTER(ct.POINTER(GParamSpec))
 libgegl.gegl_operation_find_property.argtypes = (ct.c_char_p, ct.c_char_p)
 libgegl.gegl_operation_find_property.restype = ct.c_void_p # ct.POINTER(GParamSpec)
 libgegl.gegl_operation_get_property_key.argtypes = (ct.c_char_p, ct.c_char_p, ct.c_char_p)
@@ -347,9 +348,81 @@ libgegl.gegl_init.restype = None
 libgegl.gegl_exit.argtypes = ()
 libgegl.gegl_exit.restype = None
 
+#+
+# Higher-level stuff follows
+#-
+
+class GTYPE(enum.Enum) :
+    "wrapper around some basic GType values with conversions from Python."
+
+    # (code, ct_type)
+    CHAR = (G_TYPE_CHAR, ct.c_char)
+    UCHAR = (G_TYPE_UCHAR, ct.c_ubyte)
+    BOOLEAN = (G_TYPE_BOOLEAN, ct.c_bool)
+    INT = (G_TYPE_INT, ct.c_int)
+    UINT = (G_TYPE_UINT, ct.c_uint)
+    LONG = (G_TYPE_LONG, ct.c_long)
+    ULONG = (G_TYPE_ULONG, ct.c_ulong)
+    INT64 = (G_TYPE_INT64, ct.c_int64)
+    UINT64 = (G_TYPE_UINT64, ct.c_uint64)
+    FLOAT = (G_TYPE_FLOAT, ct.c_float)
+    DOUBLE = (G_TYPE_DOUBLE, ct.c_double)
+    POINTER = (G_TYPE_POINTER, ct.c_void_p)
+
+    @property
+    def code(self) :
+        return \
+            self.value[0]
+    #end code
+
+    @property
+    def ct_type(self) :
+        return \
+            self.value[1]
+    #end ct_type
+
+    def __repr__(self) :
+        return \
+            "%s.%s" % (type(self).__name__, self.name)
+    #end __repr__
+
+#end GTYPE
+GTYPE.from_code = dict((t.code, t) for t in GTYPE)
+
+def list_operations() :
+    nr_operations = ct.c_uint()
+    c_ops_list = libgegl.gegl_list_operations(ct.byref(nr_operations))
+    print("returning %d ops" % nr_operations.value) # debug
+    result = list(s.decode() for s in c_ops_list[:nr_operations.value])
+    libglib2.g_free(ct.cast(c_ops_list, ct.c_void_p))
+    return \
+        result
+#end list_operations
+
+def operation_list_properties(opname) :
+    nr_props = ct.c_uint()
+    c_props_list = libgegl.gegl_operation_list_properties(opname.encode(), ct.byref(nr_props))
+    props = list \
+      (
+        {
+            "name" : p.name.decode(),
+            "flags" : p.flags,
+            "value_type" :
+                (lambda : p.value_type, lambda : GTYPE.from_code[p.value_type])
+                    [p.value_type in GTYPE.from_code](),
+        }
+        for pp in c_props_list[:nr_props.value]
+        for p in (pp.contents,)
+      )
+    libglib2.g_free(ct.cast(c_props_list, ct.c_void_p))
+    return \
+        props
+#end operation_list_properties
+
 def init(argv = None) :
     "wrapper around gegl_init() which lets you control what args are passed." \
-    " You can pass sys.argv, or make up your own."
+    " You can pass sys.argv, or make up your own. The adjusted argument list" \
+    " is returned."
     if argv == None :
         argv = ()
     #end if
