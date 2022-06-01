@@ -211,6 +211,7 @@ class GEGL :
 #end GEGL
 
 libglib2 = ct.cdll.LoadLibrary("libglib-2.0.so.0")
+libgobject2 = ct.cdll.LoadLibrary("libgobject-2.0.so.0")
 libgegl = ct.cdll.LoadLibrary("libgegl-0.4.so.0")
 
 #+
@@ -229,6 +230,11 @@ def g_new(c_type, nr_elts) :
     return \
         libglib2.g_malloc(ct.sizeof(c_type * nr_elts))
 #end g_new
+
+# from glib-2.0/gobject/gobject.h:
+
+libgobject2.g_object_unref.argtypes = (ct.c_void_p,)
+libgobject2.g_object_unref.restype = None
 
 # from gegl-0.4/gegl-buffer.h:
 
@@ -381,6 +387,13 @@ class GTYPE(enum.Enum) :
             self.value[1]
     #end ct_type
 
+    @property
+    def ct_conv(self) :
+        # value returned unchanged for all currently-supported types
+        return \
+            lambda x : x
+    #end ct_conv
+
     def __repr__(self) :
         return \
             "%s.%s" % (type(self).__name__, self.name)
@@ -417,6 +430,75 @@ def operation_list_properties(opname) :
     return \
         props
 #end operation_list_properties
+
+def _gegl_op_common(funcname, fixedargs, opname, varargs) :
+    "common wrapper to handle calls to the various gegl_xxx_op routines that" \
+    " take variable argument lists. In each case, the variable part consists" \
+    " of a sequence of name-value pairs terminated by a NULL."
+    if varargs != None :
+        if not isinstance(varargs, (tuple, list)) :
+            raise TypeError("varargs must be list, tuple or None")
+        #end if
+        if (
+                len(varargs) % 2 != 0
+            or
+                not all(i % 2 != 0 or isinstance(varargs[i], str) for i in range(len(varargs)))
+        ) :
+            raise TypeError("varargs must be sequence of name/value pairs")
+        #end if
+    else :
+        varargs = ()
+    #end if
+    basefunc = getattr(libgegl, funcname)
+      # fixed part of type info already set up
+    func = type(basefunc).from_address(ct.addressof(basefunc))
+      # same entry point, but can have entirely different arg/result types
+    func.restype = basefunc.restype
+    fixedargtypes = basefunc.argtypes
+    fixedargtypes = fixedargtypes[:-1] # drop trailing null-pointer arg, re-added below
+    if len(fixedargs) + 1 != len(fixedargtypes) :
+        raise TypeError("expecting %d fixed args, got %d" % (len(fixedargtypes), len(fixedargs) + 1))
+    #end if
+    propconvert = dict \
+      (
+        (prop["name"], prop["value_type"])
+        for prop in operation_list_properties(opname)
+      )
+    all_arg_types = list(fixedargtypes)
+    all_args = list(fixedargs) + [opname.encode()]
+    for i in range(0, len(varargs), 2) :
+        propname, value = varargs[i : i + 2]
+        if propname not in propconvert :
+            raise KeyError("operation “%s” has no property “%s”" % (opname, propname))
+        #end if
+        proptype = propconvert[propname]
+        if not instance(proptype, GTYPE) :
+            raise TypeError("unsupported param type %d for param “%s”" % (proptype, propname))
+        #end if
+        c_propname = propname.encode()
+        c_value = proptype.ct_conv(value)
+        all_arg_types.extend(ct.c_char_p, proptype.ct_type)
+        all_args.extend(c_propname, c_value)
+    #end for
+    all_arg_types.append(ct.c_void_p) # null to mark end of arg list
+    all_args.append(None)
+    func.argtypes = tuple(all_arg_types)
+    return \
+        func(*all_args)
+#end _gegl_op_common
+
+def apply_op(buf, opname, args = None) :
+    _gegl_op_common("gegl_apply_op", (buf,), opname, args)
+#end apply_op
+
+def filter_op(srcbuf, opname, args = None) :
+    return \
+        _gegl_op_common("gegl_filter_op", (srcbuf,), opname, args)
+#end filter_op
+
+def render_op(srcbuf, dstbuf, opname, args = None) :
+    _gegl_op_common("gegl_render_op", (srcbuf, dstbuf), opname, args)
+#end render_op
 
 def init(argv = None) :
     "wrapper around gegl_init() which lets you control what args are passed." \
