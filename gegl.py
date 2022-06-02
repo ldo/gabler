@@ -72,6 +72,16 @@ class GTypeInterface(ct.Structure) :
         ]
 #end GTypeInterface
 
+class GTypeQuery(ct.Structure) :
+    _fields_ = \
+        [
+            ("type", GType),
+            ("type_name", ct.c_char_p),
+            ("class_size", ct.c_uint),
+            ("instance_size", ct.c_uint),
+        ]
+#end GTypeQuery
+
 # from glib-2.0/gobject/gparam.h:
 
 GParamFlags = ct.c_uint
@@ -230,6 +240,11 @@ def g_new(c_type, nr_elts) :
     return \
         libglib2.g_malloc(ct.sizeof(c_type * nr_elts))
 #end g_new
+
+# from glib-2.0/glib/gtype.h:
+
+libgobject2.g_type_query.argtypes = (GType, ct.POINTER(GTypeQuery))
+libgobject2.g_type_query.restype = None
 
 # from glib-2.0/gobject/gobject.h:
 
@@ -473,7 +488,15 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
         #end if
         proptype = propconvert[propname]
         if not instance(proptype, GTYPE) :
-            raise TypeError("unsupported param type %d for param “%s”" % (proptype, propname))
+            assert isinstance(proptype, int)
+            info = GTypeQuery()
+            libglib2.g_type_query(proptype, ct.byref(info))
+            if info.type != 0 :
+                typename = info.type_name.decode()
+            else :
+                typename = "?"
+            #end if
+            raise TypeError("unsupported param type %d (%s) for param “%s”" % (proptype, typename, propname))
         #end if
         c_propname = propname.encode()
         c_value = proptype.ct_conv(value)
