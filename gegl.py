@@ -7,6 +7,8 @@ using ctypes.
 # Licensed under the GNU Lesser General Public License v2.1 or later.
 #-
 
+# GLib/GObject 2 and related docs can be found at <https://developer-old.gnome.org/references>.
+
 import enum
 import ctypes as ct
 from weakref import \
@@ -17,13 +19,21 @@ from babl import \
     BABL, \
     Babl
 
+str_encode = lambda s : s.encode()
+str_encode_optional = lambda s : (lambda : None, lambda : s.encode())[s != None]()
+str_decode = lambda s : s.decode()
+
+# from /usr/lib/«arch»/glib-2.0/include/glibconfig.h:
+
+gsize = ct.c_ulong
+
 # from glib-2.0/glib/gtypes.h:
 
 GDestroyNotify = ct.CFUNCTYPE(None, ct.c_void_p)
 
 # from glib-2.0/gobject/glib-types.h:
 
-GType = ct.c_size_t
+GType = gsize
 
 # from glib-2.0/gobject/gtype.h:
 
@@ -234,7 +244,7 @@ libgegl = ct.cdll.LoadLibrary("libgegl-0.4.so.0")
 
 # from glib-2.0/glib/gmem.h:
 
-libglib2.g_malloc.argtypes = (ct.c_size_t,)
+libglib2.g_malloc.argtypes = (gsize,)
 libglib2.g_malloc.restype = ct.c_void_p
 libglib2.g_free.argtypes = (ct.c_void_p,)
 libglib2.g_free.restype = None
