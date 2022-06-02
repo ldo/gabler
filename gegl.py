@@ -487,7 +487,7 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
             raise KeyError("operation “%s” has no property “%s”" % (opname, propname))
         #end if
         proptype = propconvert[propname]
-        if not instance(proptype, GTYPE) :
+        if not isinstance(proptype, GTYPE) :
             assert isinstance(proptype, int)
             info = GTypeQuery()
             libglib2.g_type_query(proptype, ct.byref(info))
@@ -500,8 +500,8 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
         #end if
         c_propname = propname.encode()
         c_value = proptype.ct_conv(value)
-        all_arg_types.extend(ct.c_char_p, proptype.ct_type)
-        all_args.extend(c_propname, c_value)
+        all_arg_types.extend((ct.c_char_p, proptype.ct_type))
+        all_args.extend((c_propname, c_value))
     #end for
     all_arg_types.append(ct.c_void_p) # null to mark end of arg list
     all_args.append(None)
