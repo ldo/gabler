@@ -471,6 +471,15 @@ def operation_list_keys(opname) :
         keys
 #end operation_list_keys
 
+def operation_get_key(opname, keyname) :
+    val = libgegl.gegl_operation_get_key(opname.encode(), keyname.encode())
+    if val != None :
+        val = val.decode(errors = "replace")
+    #end if
+    return \
+        val
+#end operation_get_key
+
 def operation_list_property_keys(opname, propname) :
     nr_keys = ct.c_uint()
     c_keys_list = libgegl.gegl_operation_list_property_keys(opname.encode(), propname.encode(), ct.byref(nr_keys))
@@ -479,6 +488,15 @@ def operation_list_property_keys(opname, propname) :
     return \
         keys
 #end operation_list_property_keys
+
+def operation_get_property_key(opname, propname, keyname) :
+    val = libgegl.gegl_operation_get_property_key(opname.encode(), propname.encode(), keyname.encode())
+    if val != None :
+        val = val.decode(errors = "replace")
+    #end if
+    return \
+        val
+#end operation_get_property_key
 
 def _gegl_op_common(funcname, fixedargs, opname, varargs) :
     "common wrapper to handle calls to the various gegl_xxx_op routines that" \
