@@ -358,13 +358,13 @@ libgegl.gegl_operation_find_property.restype = ct.c_void_p # ct.POINTER(GParamSp
 libgegl.gegl_operation_get_property_key.argtypes = (ct.c_char_p, ct.c_char_p, ct.c_char_p)
 libgegl.gegl_operation_get_property_key.restype = ct.c_char_p
 libgegl.gegl_operation_list_property_keys.argtypes = (ct.c_char_p, ct.c_char_p, ct.POINTER(ct.c_uint))
-libgegl.gegl_operation_list_property_keys.restype = ct.c_void_p # ct.POINTER(ct.c_char_p)
+libgegl.gegl_operation_list_property_keys.restype = ct.POINTER(ct.c_char_p)
 libgegl.gegl_param_spec_get_property_key.argtypes = (ct.POINTER(GParamSpec), ct.c_char_p)
 libgegl.gegl_param_spec_get_property_key.restype = ct.c_char_p
 libgegl.gegl_param_spec_set_property_key.argtypes = (ct.POINTER(GParamSpec), ct.c_char_p, ct.c_char_p)
 libgegl.gegl_param_spec_set_property_key.restype = None
 libgegl.gegl_operation_list_keys.argtypes = (ct.c_char_p, ct.POINTER(ct.c_uint))
-libgegl.gegl_operation_list_keys = ct.c_void_p # ct.POINTER(ct.c_char_p)
+libgegl.gegl_operation_list_keys.restype = ct.POINTER(ct.c_char_p)
 libgegl.gegl_operation_get_key.argtypes = (ct.c_char_p, ct.c_char_p)
 libgegl.gegl_operation_get_key.restype = ct.c_char_p
 
@@ -461,6 +461,24 @@ def operation_list_properties(opname) :
     return \
         props
 #end operation_list_properties
+
+def operation_list_keys(opname) :
+    nr_keys = ct.c_uint()
+    c_keys_list = libgegl.gegl_operation_list_keys(opname.encode(), ct.byref(nr_keys))
+    keys = list(k.decode() for k in c_keys_list[:nr_keys.value])
+    libglib2.g_free(ct.cast(c_keys_list, ct.c_void_p))
+    return \
+        keys
+#end operation_list_keys
+
+def operation_list_property_keys(opname, propname) :
+    nr_keys = ct.c_uint()
+    c_keys_list = libgegl.gegl_operation_list_property_keys(opname.encode(), propname.encode(), ct.byref(nr_keys))
+    keys = list(k.decode() for k in c_keys_list[:nr_keys.value])
+    libglib2.g_free(ct.cast(c_keys_list, ct.c_void_p))
+    return \
+        keys
+#end operation_list_property_keys
 
 def _gegl_op_common(funcname, fixedargs, opname, varargs) :
     "common wrapper to handle calls to the various gegl_xxx_op routines that" \
