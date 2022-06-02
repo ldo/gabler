@@ -1,0 +1,12 @@
+This project provides (partial) Python wrappers for the
+[GEGL](https://gegl.org/) and [BABL](https://gegl.org/babl/) graphics
+libraries. The aim is to provide enough functionality to be useful in
+plugins written for [GIMP](https://gimp.org/) in Python.
+
+In order to actually write such plugins, you will need my `pylibgimp`
+wrapper for the GIMP API
+([`GitLab`](https://gitlab.com/ldo/pylibgimp2),
+[`GitHub`](https://github.com/ldo/pylibgimp2)).
+
+Lawrence D'Oliveiro <ldo@geek-central.gen.nz>
+2022 June 2
