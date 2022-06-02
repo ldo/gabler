@@ -451,15 +451,22 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
     " take variable argument lists. In each case, the variable part consists" \
     " of a sequence of name-value pairs terminated by a NULL."
     if varargs != None :
-        if not isinstance(varargs, (tuple, list)) :
-            raise TypeError("varargs must be list, tuple or None")
-        #end if
-        if (
-                len(varargs) % 2 != 0
-            or
-                not all(i % 2 != 0 or isinstance(varargs[i], str) for i in range(len(varargs)))
-        ) :
-            raise TypeError("varargs must be sequence of name/value pairs")
+        if isinstance(varargs, dict) :
+            if not all(isinstance(k, str) for k in varargs) :
+                raise TypeError("varargs keys must be strings")
+            #end if
+            varargs = tuple((k, v) for k, v in varargs.items())
+        elif isinstance(varargs, (tuple, list)) :
+            if not all \
+              (
+                isinstance(a, (tuple, list)) and len(a) == 2 and isinstance(a[0], str)
+                for a in varargs
+              ) \
+            :
+                raise TypeError("varargs must be sequence of name/value pairs")
+            #end if
+        else :
+            raise TypeError("varargs must be dict, list, tuple or None")
         #end if
     else :
         varargs = ()
@@ -481,8 +488,7 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
       )
     all_arg_types = list(fixedargtypes)
     all_args = list(fixedargs) + [opname.encode()]
-    for i in range(0, len(varargs), 2) :
-        propname, value = varargs[i : i + 2]
+    for propname, value in varargs :
         if propname not in propconvert :
             raise KeyError("operation “%s” has no property “%s”" % (opname, propname))
         #end if
