@@ -461,7 +461,7 @@ GTYPE.from_code = dict((t.code, t) for t in GTYPE)
 def list_operations() :
     nr_operations = ct.c_uint()
     c_ops_list = libgegl.gegl_list_operations(ct.byref(nr_operations))
-    result = list(s.decode() for s in c_ops_list[:nr_operations.value])
+    result = list(str_decode(s) for s in c_ops_list[:nr_operations.value])
     libglib2.g_free(ct.cast(c_ops_list, ct.c_void_p))
     return \
         result
@@ -469,11 +469,11 @@ def list_operations() :
 
 def operation_list_properties(opname) :
     nr_props = ct.c_uint()
-    c_props_list = libgegl.gegl_operation_list_properties(opname.encode(), ct.byref(nr_props))
+    c_props_list = libgegl.gegl_operation_list_properties(str_encode(opname), ct.byref(nr_props))
     props = list \
       (
         {
-            "name" : p.name.decode(),
+            "name" : str_decode(p.name),
             "flags" : p.flags,
             "value_type" :
                 (lambda : p.value_type, lambda : GTYPE.from_code[p.value_type])
@@ -489,18 +489,18 @@ def operation_list_properties(opname) :
 
 def operation_list_keys(opname) :
     nr_keys = ct.c_uint()
-    c_keys_list = libgegl.gegl_operation_list_keys(opname.encode(), ct.byref(nr_keys))
-    keys = list(k.decode() for k in c_keys_list[:nr_keys.value])
+    c_keys_list = libgegl.gegl_operation_list_keys(str_encode(opname), ct.byref(nr_keys))
+    keys = list(str_decode(k) for k in c_keys_list[:nr_keys.value])
     libglib2.g_free(ct.cast(c_keys_list, ct.c_void_p))
     return \
         keys
 #end operation_list_keys
 
 def operation_get_key(opname, keyname) :
-    val = libgegl.gegl_operation_get_key(opname.encode(), keyname.encode())
+    val = libgegl.gegl_operation_get_key(str_encode(opname), str_encode(keyname))
     if val != None :
         try :
-            val = val.decode()
+            val = str_decode(val)
         except UnicodeDecodeError :
             pass # leave as bytes
             # it seems only the “operation-class” key has this trouble
@@ -512,17 +512,17 @@ def operation_get_key(opname, keyname) :
 
 def operation_list_property_keys(opname, propname) :
     nr_keys = ct.c_uint()
-    c_keys_list = libgegl.gegl_operation_list_property_keys(opname.encode(), propname.encode(), ct.byref(nr_keys))
-    keys = list(k.decode() for k in c_keys_list[:nr_keys.value])
+    c_keys_list = libgegl.gegl_operation_list_property_keys(str_encode(opname), str_encode(propname), ct.byref(nr_keys))
+    keys = list(str_decode(k) for k in c_keys_list[:nr_keys.value])
     libglib2.g_free(ct.cast(c_keys_list, ct.c_void_p))
     return \
         keys
 #end operation_list_property_keys
 
 def operation_get_property_key(opname, propname, keyname) :
-    val = libgegl.gegl_operation_get_property_key(opname.encode(), propname.encode(), keyname.encode())
+    val = libgegl.gegl_operation_get_property_key(str_encode(opname), str_encode(propname), str_encode(keyname))
     if val != None :
-        val = val.decode()
+        val = str_decode(val)
     #end if
     return \
         val
@@ -569,7 +569,7 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
         for prop in operation_list_properties(opname)
       )
     all_arg_types = list(fixedargtypes)
-    all_args = list(fixedargs) + [opname.encode()]
+    all_args = list(fixedargs) + [str_encode(opname)]
     for propname, value in varargs :
         if propname not in propconvert :
             raise KeyError("operation “%s” has no property “%s”" % (opname, propname))
@@ -580,13 +580,13 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
             info = GTypeQuery()
             libglib2.g_type_query(proptype, ct.byref(info))
             if info.type != 0 :
-                typename = info.type_name.decode()
+                typename = str_decode(info.type_name)
             else :
                 typename = "?"
             #end if
             raise TypeError("unsupported param type %d (%s) for param “%s”" % (proptype, typename, propname))
         #end if
-        c_propname = propname.encode()
+        c_propname = str_encode(propname)
         c_value = proptype.ct_conv(value)
         all_arg_types.extend((ct.c_char_p, proptype.ct_type))
         all_args.extend((c_propname, c_value))
@@ -705,7 +705,7 @@ class Colour :
     @classmethod
     def create(celf, string = None) :
         if string != None :
-            c_string = string.encode()
+            c_string = str_encode(string)
         else :
             c_string = None
         #end if
@@ -769,12 +769,12 @@ def init(argv = None) :
     c_argc = ct.c_int(len(argv))
     c_argv = (ct.c_char_p * (len(argv) + 1))()
     for i in range(len(argv)) :
-        c_argv[i] = argv[i].encode()
+        c_argv[i] = str_encode(argv[i])
     #end for
     c_argv[len(argv)] = None
     libgegl.gegl_init(c_argc, c_argv)
     return \
-        list(v.decode() for v in c_argv[:c_argc.value])
+        list(str_decode(v) for v in c_argv[:c_argc.value])
 #end init
 
 def exit() :
