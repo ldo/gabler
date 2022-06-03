@@ -417,19 +417,20 @@ libgegl.gegl_exit.restype = None
 class GTYPE(enum.Enum) :
     "wrapper around some basic GType values with conversions from Python."
 
-    # (code, ct_type)
-    CHAR = (G_TYPE_CHAR, ct.c_char)
-    UCHAR = (G_TYPE_UCHAR, ct.c_ubyte)
-    BOOLEAN = (G_TYPE_BOOLEAN, ct.c_bool)
-    INT = (G_TYPE_INT, ct.c_int)
-    UINT = (G_TYPE_UINT, ct.c_uint)
-    LONG = (G_TYPE_LONG, ct.c_long)
-    ULONG = (G_TYPE_ULONG, ct.c_ulong)
-    INT64 = (G_TYPE_INT64, ct.c_int64)
-    UINT64 = (G_TYPE_UINT64, ct.c_uint64)
-    FLOAT = (G_TYPE_FLOAT, ct.c_float)
-    DOUBLE = (G_TYPE_DOUBLE, ct.c_double)
-    POINTER = (G_TYPE_POINTER, ct.c_void_p)
+    # (code, ct_type, conv_to_ct)
+    CHAR = (G_TYPE_CHAR, ct.c_char, ident)
+    UCHAR = (G_TYPE_UCHAR, ct.c_ubyte, ident)
+    BOOLEAN = (G_TYPE_BOOLEAN, ct.c_bool, ident)
+    INT = (G_TYPE_INT, ct.c_int, ident)
+    UINT = (G_TYPE_UINT, ct.c_uint, ident)
+    LONG = (G_TYPE_LONG, ct.c_long, ident)
+    ULONG = (G_TYPE_ULONG, ct.c_ulong, ident)
+    INT64 = (G_TYPE_INT64, ct.c_int64, ident)
+    UINT64 = (G_TYPE_UINT64, ct.c_uint64, ident)
+    FLOAT = (G_TYPE_FLOAT, ct.c_float, ident)
+    DOUBLE = (G_TYPE_DOUBLE, ct.c_double, ident)
+    STRING = (G_TYPE_STRING, ct.c_char_p, str_encode)
+    POINTER = (G_TYPE_POINTER, ct.c_void_p, ident)
 
     @property
     def code(self) :
@@ -445,9 +446,8 @@ class GTYPE(enum.Enum) :
 
     @property
     def ct_conv(self) :
-        # value returned unchanged for all currently-supported types
         return \
-            ident
+            self.value[2]
     #end ct_conv
 
     def __repr__(self) :
