@@ -474,7 +474,12 @@ def operation_list_keys(opname) :
 def operation_get_key(opname, keyname) :
     val = libgegl.gegl_operation_get_key(opname.encode(), keyname.encode())
     if val != None :
-        val = val.decode(errors = "replace")
+        try :
+            val = val.decode()
+        except UnicodeDecodeError :
+            pass # leave as bytes
+            # it seems only the “operation-class” key has this trouble
+        #end try
     #end if
     return \
         val
@@ -492,7 +497,7 @@ def operation_list_property_keys(opname, propname) :
 def operation_get_property_key(opname, propname, keyname) :
     val = libgegl.gegl_operation_get_property_key(opname.encode(), propname.encode(), keyname.encode())
     if val != None :
-        val = val.decode(errors = "replace")
+        val = val.decode()
     #end if
     return \
         val
