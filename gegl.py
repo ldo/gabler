@@ -622,7 +622,6 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
     #end for
     all_arg_types.append(ct.c_void_p) # null to mark end of arg list
     all_args.append(None)
-    print("call %s(%s) -> %s with (%s)" % (funcname, ", ".join(repr(t) for t in all_arg_types), repr(func.restype), ", ".join(repr(v) for v in all_args))) # debug
     func.argtypes = tuple(all_arg_types)
     return \
         func(*all_args)
