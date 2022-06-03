@@ -609,14 +609,16 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
         proptype = propconvert[propname]
         if isinstance(proptype, GTYPE) :
             c_value = proptype.ct_conv(value)
+            c_type = proptype.ct_type
         else :
             assert isinstance(proptype, int)
             entry = _find_dynamic_conv(proptype, propname)
             c_value = entry.get("conv", ident)(value)
+            c_type = ct.c_void_p
         #end if
         c_propname = str_encode(propname)
-        all_arg_types.extend((ct.c_char_p, proptype.ct_type))
         all_args.extend((c_propname, c_value))
+        all_arg_types.extend((ct.c_char_p, c_type))
     #end for
     all_arg_types.append(ct.c_void_p) # null to mark end of arg list
     all_args.append(None)
