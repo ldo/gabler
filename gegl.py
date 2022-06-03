@@ -23,6 +23,8 @@ str_encode = lambda s : s.encode()
 str_encode_optional = lambda s : (lambda : None, lambda : s.encode())[s != None]()
 str_decode = lambda s : s.decode()
 
+ident = lambda x : x
+
 # from /usr/lib/«arch»/glib-2.0/include/glibconfig.h:
 
 gsize = ct.c_ulong
@@ -445,7 +447,7 @@ class GTYPE(enum.Enum) :
     def ct_conv(self) :
         # value returned unchanged for all currently-supported types
         return \
-            lambda x : x
+            ident
     #end ct_conv
 
     def __repr__(self) :
