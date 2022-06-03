@@ -259,6 +259,8 @@ def g_new(c_type, nr_elts) :
 
 # from glib-2.0/glib/gtype.h:
 
+libgobject2.g_type_from_name.argtypes = (ct.c_char_p,)
+libgobject2.g_type_from_name.restype = GType
 libgobject2.g_type_query.argtypes = (GType, ct.POINTER(GTypeQuery))
 libgobject2.g_type_query.restype = None
 
@@ -458,6 +460,36 @@ class GTYPE(enum.Enum) :
 #end GTYPE
 GTYPE.from_code = dict((t.code, t) for t in GTYPE)
 
+dynamic_types_by_name = {}
+  # filled in by _init_dynamic_types() (below)
+dynamic_types_by_id = {}
+
+def _find_dynamic_conv(typeid, parmname) :
+    if typeid in dynamic_types_by_id :
+        entry = dynamic_types_by_id[typeid]
+    else :
+        info = GTypeQuery()
+        libgobject2.g_type_query(typeid, ct.byref(info))
+        if info.type != 0 :
+            type_name = str_decode(info.type_name)
+            if type_name in dynamic_types_by_name :
+                entry = dynamic_types_by_name[type_name]
+                entry["typeid"] = typeid
+            else :
+                entry = {"name" : type_name}
+                # no conv, just let caller pass raw pointer
+            #end if
+            dynamic_types_by_id[typeid] = entry
+        else :
+            # raise TypeError("unknown type ID %d for param “%s”" % (typeid, parmname))
+            entry = {"name" : "?"}
+            # again no conv, just let caller pass raw pointer
+        #end if
+    #end if
+    return \
+        entry
+#end _find_dynamic_conv
+
 def list_operations() :
     nr_operations = ct.c_uint()
     c_ops_list = libgegl.gegl_list_operations(ct.byref(nr_operations))
@@ -575,24 +607,20 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
             raise KeyError("operation “%s” has no property “%s”" % (opname, propname))
         #end if
         proptype = propconvert[propname]
-        if not isinstance(proptype, GTYPE) :
+        if isinstance(proptype, GTYPE) :
+            c_value = proptype.ct_conv(value)
+        else :
             assert isinstance(proptype, int)
-            info = GTypeQuery()
-            libglib2.g_type_query(proptype, ct.byref(info))
-            if info.type != 0 :
-                typename = str_decode(info.type_name)
-            else :
-                typename = "?"
-            #end if
-            raise TypeError("unsupported param type %d (%s) for param “%s”" % (proptype, typename, propname))
+            entry = _find_dynamic_conv(proptype, propname)
+            c_value = entry.get("conv", ident)(value)
         #end if
         c_propname = str_encode(propname)
-        c_value = proptype.ct_conv(value)
         all_arg_types.extend((ct.c_char_p, proptype.ct_type))
         all_args.extend((c_propname, c_value))
     #end for
     all_arg_types.append(ct.c_void_p) # null to mark end of arg list
     all_args.append(None)
+    print("call %s(%s) -> %s with (%s)" % (funcname, ", ".join(repr(t) for t in all_arg_types), repr(func.restype), ", ".join(repr(v) for v in all_args))) # debug
     func.argtypes = tuple(all_arg_types)
     return \
         func(*all_args)
@@ -754,6 +782,41 @@ class Colour :
     # TODO spec_color, get_default
 
 #end Colour
+
+def _init_dynamic_types() :
+
+    def def_expect_gegl_wrapper(wrapper_type) :
+
+        def conv(val) :
+            if not isinstance(val, wrapper_type) :
+                raise TypeError("value must be of type %s" % wrapper_type.__name__)
+            #end if
+            return \
+                val._geglobj
+        #end conv
+
+    #begin def_expect_gegl_wrapper
+        conv.__name__ = "conv_%s" % wrapper_type.__name__
+        return \
+            conv
+    #end def_expect_gegl_wrapper
+
+#begin _init_dynamic_types
+    for type_name, conv in \
+        (
+            ("GeglBuffer", def_expect_gegl_wrapper(Buffer)),
+            ("GeglColor", def_expect_gegl_wrapper(Colour)),
+        ) \
+    :
+        dynamic_types_by_name[type_name] = \
+            {
+                "name" : type_name,
+                "conv" : conv,
+            }
+    #end for
+#end _init_dynamic_types
+_init_dynamic_types()
+del _init_dynamic_types
 
 #+
 # Overall
