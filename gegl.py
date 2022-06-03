@@ -15,6 +15,12 @@ from weakref import \
     WeakValueDictionary
 import atexit
 
+try :
+    import qahirah as qah
+except ImportError :
+    qah = None
+#end try
+
 from babl import \
     BABL, \
     Babl
@@ -741,6 +747,26 @@ class Colour :
         return \
             celf(libgegl.gegl_color_new(c_string))
     #end create
+
+    if qah != None :
+
+        @classmethod
+        def create_from_qah(celf, colour) :
+            if not isinstance(colour, qah.Colour) :
+                raise TypeError("colour must be a Qahirah Colour")
+            #end if
+            result = celf.create()
+            result.set_rgba(*colour.to_rgba())
+            return \
+                result
+        #end create_from_qah
+
+        def to_qah(self) :
+            return \
+                qah.Colour.from_rgba(self.rgba)
+        #end to_qah
+
+    #end if
 
     def duplicate(self) :
         return \
