@@ -104,6 +104,33 @@ class GTypeQuery(ct.Structure) :
         ]
 #end GTypeQuery
 
+# from glib-2.0/gobject/gvalue.h:
+
+class GValue(ct.Structure) :
+
+    class _data_union(ct.Union) :
+        _fields_ = \
+            [
+                ("v_int", ct.c_int),
+                ("v_uint", ct.c_uint),
+                ("v_long", ct.c_long),
+                ("v_ulong", ct.c_ulong),
+                ("v_int64", ct.c_int64),
+                ("v_uint64", ct.c_uint64),
+                ("v_float", ct.c_float),
+                ("v_double", ct.c_double),
+                ("v_pointer", ct.c_void_p),
+            ]
+    #end _data_union
+
+    _fields_ = \
+        [
+            ("g_type", GType),
+            ("data", 2 * _data_union),
+        ]
+
+#end GValue
+
 # from glib-2.0/gobject/gparam.h:
 
 GParamFlags = ct.c_uint
@@ -277,6 +304,93 @@ libgobject2.g_type_from_name.argtypes = (ct.c_char_p,)
 libgobject2.g_type_from_name.restype = GType
 libgobject2.g_type_query.argtypes = (GType, ct.POINTER(GTypeQuery))
 libgobject2.g_type_query.restype = None
+libgobject2.g_type_check_value_holds.argtypes = (ct.POINTER(GValue), GType)
+libgobject2.g_type_check_value_holds.restype = ct.c_bool
+
+# from glib-2.0/glib/gvalue.h:
+
+libgobject2.g_value_init.argtypes = (ct.POINTER(GValue), GType)
+libgobject2.g_value_init.restype = ct.POINTER(GValue)
+libgobject2.g_value_copy.argtypes = (ct.POINTER(GValue), ct.POINTER(GValue))
+libgobject2.g_value_copy.restype = None
+libgobject2.g_value_reset.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_reset.restype = ct.POINTER(GValue)
+libgobject2.g_value_unset.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_unset.restype = None
+libgobject2.g_value_fits_pointer.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_fits_pointer.restype = ct.c_bool
+libgobject2.g_value_peek_pointer.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_peek_pointer.restype = ct.c_void_p
+
+# from glib-2.0/glib/gvaluetypes.h:
+
+libgobject2.g_value_set_uchar.argtypes = (ct.POINTER(GValue), ct.c_ubyte)
+libgobject2.g_value_set_uchar.restype = None
+libgobject2.g_value_get_uchar.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_uchar.restype = ct.c_ubyte
+libgobject2.g_value_set_boolean.argtypes = (ct.POINTER(GValue), ct.c_bool)
+libgobject2.g_value_set_boolean.restype = None
+libgobject2.g_value_get_boolean.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_boolean.restype = ct.c_bool
+libgobject2.g_value_set_int.argtypes = (ct.POINTER(GValue), ct.c_int)
+libgobject2.g_value_set_int.restype = None
+libgobject2.g_value_get_int.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_int.restype = ct.c_int
+libgobject2.g_value_set_uint.argtypes = (ct.POINTER(GValue), ct.c_uint)
+libgobject2.g_value_set_uint.restype = None
+libgobject2.g_value_get_uint.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_uint.restype = ct.c_uint
+libgobject2.g_value_set_long.argtypes = (ct.POINTER(GValue), ct.c_long)
+libgobject2.g_value_set_long.restype = None
+libgobject2.g_value_get_long.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_long.restype = ct.c_long
+libgobject2.g_value_set_ulong.argtypes = (ct.POINTER(GValue), ct.c_ulong)
+libgobject2.g_value_set_ulong.restype = None
+libgobject2.g_value_get_ulong.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_ulong.restype = ct.c_ulong
+libgobject2.g_value_set_int64.argtypes = (ct.POINTER(GValue), ct.c_int64)
+libgobject2.g_value_set_int64.restype = None
+libgobject2.g_value_get_int64.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_int64.restype = ct.c_int64
+libgobject2.g_value_set_uint64.argtypes = (ct.POINTER(GValue), ct.c_uint64)
+libgobject2.g_value_set_uint64.restype = None
+libgobject2.g_value_get_uint64.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_uint64.restype = ct.c_uint64
+libgobject2.g_value_set_float.argtypes = (ct.POINTER(GValue), ct.c_float)
+libgobject2.g_value_set_float.restype = None
+libgobject2.g_value_get_float.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_float.restype = ct.c_float
+libgobject2.g_value_set_double.argtypes = (ct.POINTER(GValue), ct.c_double)
+libgobject2.g_value_set_double.restype = None
+libgobject2.g_value_get_double.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_double.restype = ct.c_double
+libgobject2.g_value_set_string.argtypes = (ct.POINTER(GValue), ct.c_char_p)
+libgobject2.g_value_set_string.restype = None
+libgobject2.g_value_set_static_string.argtypes = (ct.POINTER(GValue), ct.c_char_p)
+libgobject2.g_value_set_static_string.restype = None
+libgobject2.g_value_set_interned_string.argtypes = (ct.POINTER(GValue), ct.c_char_p)
+libgobject2.g_value_set_interned_string.restype = None
+libgobject2.g_value_get_string.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_string.restype = ct.c_char_p
+libgobject2.g_value_dup_string.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_dup_string.restype = ct.c_char_p
+libgobject2.g_value_set_pointer.argtypes = (ct.POINTER(GValue), ct.c_void_p)
+libgobject2.g_value_set_pointer.restype = None
+libgobject2.g_value_get_pointer.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_pointer.restype = ct.c_void_p
+libgobject2.g_gtype_get_type.argtypes = ()
+libgobject2.g_gtype_get_type.restype = GType
+libgobject2.g_value_set_gtype.argtypes = (ct.POINTER(GValue), GType)
+libgobject2.g_value_set_gtype.restype = None
+libgobject2.g_value_get_gtype.argtypes = (ct.POINTER(GValue),)
+libgobject2.g_value_get_gtype.restype = GType
+
+# from glib-2.0/gobject/gparam.h:
+
+libgobject2.g_param_spec_ref.argtypes = (ct.POINTER(GParamSpec),)
+libgobject2.g_param_spec_ref.restype = ct.POINTER(GParamSpec)
+libgobject2.g_param_spec_unref.argtypes = (ct.POINTER(GParamSpec),)
+libgobject2.g_param_spec_unref.restype = None
 
 # from glib-2.0/gobject/gobject.h:
 
