@@ -277,6 +277,11 @@ libgobject2.g_object_ref.restype = ct.c_void_p
 libgobject2.g_object_unref.argtypes = (ct.c_void_p,)
 libgobject2.g_object_unref.restype = None
 
+# from glib-2.0/gobject/gsignal.h:
+
+libgobject2.g_signal_connect_data.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p, ct.c_void_p, ct.c_void_p, GConnectFlags)
+libgobject2.g_signal_connect_data.restype = ct.c_ulong
+
 # from gegl-0.4/gegl-color.h:
 
 libgegl.gegl_color_new.argtypes = (ct.c_char_p,)
