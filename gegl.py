@@ -143,6 +143,14 @@ class GParamSpec(ct.Structure) :
 # from glib-2.0/gobject/gclosure.h:
 
 GCallback = ct.CFUNCTYPE(None) # actually might take args and return result, depending on context
+GClosureNotify = ct.CFUNCTYPE(None, ct.c_void_p, ct.c_void_p)
+
+# from glib-2.0/gobject/gsignal.h:
+
+GConnectFlags = ct.c_uint
+# values for GConnectFlags:
+G_CONNECT_AFTER = 1 << 0
+G_CONNECT_SWAPPED = 1 << 1
 
 class GEGL :
     "useful constants and types from include files."
