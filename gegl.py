@@ -398,6 +398,12 @@ libgobject2.g_object_ref.argtypes = (ct.c_void_p,)
 libgobject2.g_object_ref.restype = ct.c_void_p
 libgobject2.g_object_unref.argtypes = (ct.c_void_p,)
 libgobject2.g_object_unref.restype = None
+libgobject2.g_object_get_data.argtypes = (ct.c_void_p, ct.c_char_p)
+libgobject2.g_object_get_data.restype = ct.c_void_p
+libgobject2.g_object_set_data.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p)
+libgobject2.g_object_set_data.restype = None
+libgobject2.g_object_set_data_full.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p, GDestroyNotify)
+libgobject2.g_object_set_data_full.restype = None
 
 # from glib-2.0/gobject/gsignal.h:
 
