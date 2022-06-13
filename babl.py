@@ -182,6 +182,71 @@ libbabl.babl_fish_get_process.restype = BABL.FishProcess
 # Higher-level stuff
 #-
 
+class Component :
+
+    __slots__ = ("_bablobj", "__weakref__")
+
+    _instances = WeakValueDictionary()
+
+    def __new__(celf, _bablobj) :
+        self = celf._instances.get(_bablobj)
+        if self == None :
+            self = super().__new__(celf)
+            self._bablobj = _bablobj
+            celf._instances[_bablobj] = self
+        #end if
+        return \
+            self
+    #end __new__
+
+    # no need for __del__ -- babl manages its own storage?
+
+    @classmethod
+    def with_name(celf, name) :
+        result = libbabl.babl_component(name.encode())
+        if result != None :
+            result = celf(name)
+        #end if
+        return \
+            result
+    #end with_name
+
+    @classmethod
+    def new(celf, name, id = None, doc = None, luma = False, chroma = False, alpha = False) :
+        func = getattr(libbabl, "babl_component_new")
+        func = type(func).from_address(ct.addressof(func))
+          # new copy with same entry point
+        argtypes = [ct.c_char_p]
+        args = [name.encode()]
+        if id != None :
+            argtypes.extend([ct.c_char_p, ct.c_int])
+            args.extend(["id".encode(), id])
+        #end if
+        if doc != None :
+            argtypes.extend([ct.c_char_p, ct.c_char_p])
+            args.extend(["doc".encode(), doc.encode()])
+        #end if
+        for keyword, value in \
+            (
+                ("luma", luma),
+                ("chroma", chroma),
+                ("alpha", alpha),
+            ) \
+        :
+            if value :
+                argtypes.extend([ct.c_char_p])
+                args.extend([keyword.encode()])
+            #end if
+        #end for
+        argtypes.append(ct.c_void_p) # null to mark end of arg list
+        args.append(None)
+        func.argtypes = tuple(argtypes)
+        return \
+            celf(func(*args))
+    #end new
+
+#end Component
+
 class Babl :
     "wrapper around a Babl object. Do not instantiate directly: use the" \
     " format_xxx methods."
