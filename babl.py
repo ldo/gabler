@@ -118,12 +118,20 @@ libbabl.babl_format_get_n_components.argtypes = (BABL.Ptr,)
 libbabl.babl_format_get_n_components.restype = ct.c_int
 libbabl.babl_format_get_type.argtypes = (BABL.Ptr, ct.c_int)
 libbabl.babl_format_get_type.restype = BABL.Ptr
-# babl_model_new, babl_format_new -- use varargs, can’t access
+libbabl.babl_type_new.argtypes = (ct.c_void_p,) # varargs!
+libbabl.babl_type_new.restype = ct.c_void_p
+libbabl.babl_component_new.argtypes = (ct.c_void_p,) # varargs!
+libbabl.babl_component_new.restype = ct.c_void_p
+libbabl.babl_model_new.argtypes = (ct.c_void_p,) # varargs!
+libbabl.babl_model_new.restype = ct.c_void_p
+libbabl.babl_format_new.argtypes = (ct.c_void_p,) # varargs!
+libbabl.babl_format_new.restype = ct.c_void_p
 libbabl.babl_format_n.argtypes = (BABL.Ptr, ct.c_int)
 libbabl.babl_format_n.restype = BABL.Ptr
 libbabl.babl_format_is_format_n.argtypes = (BABL.Ptr,)
 libbabl.babl_format_is_format_n.restype = ct.c_bool
-# babl_conversion_new -- uses varargs, can’t access
+libbabl.babl_conversion_new.argtypes = (ct.c_void_p,) # varargs!
+libbabl.babl_conversion_new.restype = ct.c_void_p
 libbabl.babl_conversion_get_source_space.argtypes = (BABL.Ptr,)
 libbabl.babl_conversion_get_source_space.restype = BABL.Ptr
 libbabl.babl_conversion_get_destination_space.argtypes = (BABL.Ptr,)
