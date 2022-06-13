@@ -204,17 +204,47 @@ class Babl :
     # no need for __del__ -- babl manages its own storage?
 
     @classmethod
+    def model(celf, name) :
+        result = libbabl.babl_model(name.encode())
+        if result != None :
+            result = celf(result)
+        #end if
+        return \
+            result
+    #end model
+
+    @classmethod
+    def space(celf, name) :
+        result = libbabl.babl_space(name.encode())
+        if result != None :
+            result = celf(result)
+        #end if
+        return \
+            result
+    #end space
+
+    @classmethod
+    def sampling(celf, horizontal, vertical) :
+        result = libbabl.babl_sampling(horizontal, vertical)
+        if result != None :
+            result = celf(result)
+        #end if
+        return \
+            result
+    #end sampling
+
+    @classmethod
     def component(celf, name) :
         result = libbabl.babl_component(name.encode())
         if result != None :
-            result = celf(name)
+            result = celf(result)
         #end if
         return \
             result
     #end component
 
     @classmethod
-    def component_new(celf, name, id = None, doc = None, luma = False, chroma = False, alpha = False) :
+    def component_new(celf, name, *, id = None, doc = None, luma = False, chroma = False, alpha = False) :
         func = getattr(libbabl, "babl_component_new")
         func = type(func).from_address(ct.addressof(func))
           # new copy with same entry point
@@ -248,6 +278,95 @@ class Babl :
     #end component_new
 
     @classmethod
+    def format_new(celf, *, id = None, name = None, doc = None, packed = False, planar = False, model, space = None, components) :
+        func = getattr(libbabl, "babl_format_new")
+        func = type(func).from_address(ct.addressof(func))
+          # new copy with same entry point
+        argtypes = []
+        args = []
+        if id != None :
+            argtypes.extend([ct.c_char_p, ct.c_int])
+            args.extend(["id".encode(), id])
+        #end if
+        for keyword, value in \
+            (
+                ("name", name),
+                ("doc", doc),
+            ) \
+        :
+            if value != None :
+                argtypes.extend([ct.c_char_p, ct.c_char_p])
+                args.extend([keyword.encode(), value.encode()])
+            #end if
+        #end for
+        for keyword, value in \
+            (
+                ("packed", packed),
+                ("planar", planar),
+            ) \
+        :
+            if value :
+                argtypes.extend([ct.c_char_p])
+                args.extend([keyword.encode()])
+            #end if
+        #end for
+        for keyword, value in \
+            (
+                ("model", model),
+                ("space", space),
+            ) \
+        :
+            if value != None :
+                if not isinstance(value, Babl) :
+                    raise TypeError("%s is not a Babl object" % keyword)
+                #end if
+                argtypes.append(ct.c_void_p)
+                args.append(value._bablobj)
+            #end if
+        #end for
+        if components != None :
+            if (
+                    not isinstance(components, (list, tuple))
+                or
+                    not all(isinstance(c, dict) and "component" in c for c in components)
+            ) :
+                raise TypeError("components is not a sequence of dicts with “component” keys")
+            #end if
+            for i, component in enumerate(components) :
+                for keyword in ("type", "sampling") :
+                    # if these are not present, component inherits settings from previous one
+                    if keyword in component :
+                        value = component[keyword]
+                        if not isinstance(value, Babl) :
+                            raise TypeError \
+                              (
+                                "%s value for component %d is not a Babl object" % (keyword, i)
+                              )
+                        #end if
+                        argtypes.append(ct.c_void_p)
+                        args.append(value._bablobj)
+                    #end if
+                #end for
+                # component itself comes after type and sampling
+                value = component["component"]
+                if not isinstance(value, Babl) :
+                    raise TypeError \
+                      (
+                        "component value for component %d is not a Babl object" %  i
+                      )
+                #end if
+                argtypes.append(ct.c_void_p)
+                args.append(value._bablobj)
+            #end for
+        #end if
+        argtypes.append(ct.c_void_p) # null to mark end of arg list
+        args.append(None)
+        func.argtypes = tuple(argtypes)
+        return \
+            celf(func(*args))
+    #end format_new
+
+    @classmethod
     def format(celf, encoding) :
         return \
             celf(libbabl.babl_format(encoding.encode()))
@@ -269,16 +388,22 @@ class Babl :
     #end name
 
     @property
+    def format_space(self) :
+        return \
+            type(self)(libbabl.babl_format_get_space(self._bablobj))
+    #end format_space
+
+    @property
     def bytes_per_pixel(self) :
         return \
             libbabl.babl_format_get_bytes_per_pixel(self._bablobj)
     #end bytes_per_pixel
 
     @property
-    def model(self) :
+    def format_model(self) :
         return \
             type(self)(libbabl.babl_format_get_model(self._bablobj))
-    #end model
+    #end format_model
 
     @property
     def model_flags(self) :
