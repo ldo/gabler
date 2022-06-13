@@ -182,7 +182,9 @@ libbabl.babl_fish_get_process.restype = BABL.FishProcess
 # Higher-level stuff
 #-
 
-class Component :
+class Babl :
+    "wrapper around a Babl object. Do not instantiate directly: use the" \
+    " format_xxx methods."
 
     __slots__ = ("_bablobj", "__weakref__")
 
@@ -202,17 +204,17 @@ class Component :
     # no need for __del__ -- babl manages its own storage?
 
     @classmethod
-    def with_name(celf, name) :
+    def component(celf, name) :
         result = libbabl.babl_component(name.encode())
         if result != None :
             result = celf(name)
         #end if
         return \
             result
-    #end with_name
+    #end component
 
     @classmethod
-    def new(celf, name, id = None, doc = None, luma = False, chroma = False, alpha = False) :
+    def component_new(celf, name, id = None, doc = None, luma = False, chroma = False, alpha = False) :
         func = getattr(libbabl, "babl_component_new")
         func = type(func).from_address(ct.addressof(func))
           # new copy with same entry point
@@ -243,30 +245,7 @@ class Component :
         func.argtypes = tuple(argtypes)
         return \
             celf(func(*args))
-    #end new
-
-#end Component
-
-class Babl :
-    "wrapper around a Babl object. Do not instantiate directly: use the" \
-    " format_xxx methods."
-
-    __slots__ = ("_bablobj", "__weakref__")
-
-    _instances = WeakValueDictionary()
-
-    def __new__(celf, _bablobj) :
-        self = celf._instances.get(_bablobj)
-        if self == None :
-            self = super().__new__(celf)
-            self._bablobj = _bablobj
-            celf._instances[_bablobj] = self
-        #end if
-        return \
-            self
-    #end __new__
-
-    # no need for __del__ -- babl manages its own storage?
+    #end component_new
 
     @classmethod
     def format(celf, encoding) :
@@ -318,10 +297,15 @@ class Babl :
             type(self)(libbabl.babl_format_get_type(self._bablobj, component_index))
     #end get_type
 
-    def __repr__(self) :
-        return \
-            "<Babl %s>" % repr(self.name)
-    #end __repr__
+    if False :
+        # unfortunately, not all Babl object types have names...
+
+        def __repr__(self) :
+            return \
+                "<Babl %s>" % repr(self.name)
+        #end __repr__
+
+    #end if
 
 #end Babl
 
