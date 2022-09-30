@@ -39,6 +39,17 @@ gsize = ct.c_ulong
 
 GDestroyNotify = ct.CFUNCTYPE(None, ct.c_void_p)
 
+# from glib-2.0/glib/gslist.h:
+
+class _GSList(ct.Structure) :
+    pass
+_GSList._fields_ = \
+    [
+        ("data", ct.c_void_p),
+        ("next", ct.POINTER(_GSList)),
+    ]
+#end _GSList
+
 # from glib-2.0/gobject/glib-types.h:
 
 GType = gsize
@@ -298,6 +309,16 @@ def g_new(c_type, nr_elts) :
         libglib2.g_malloc(ct.sizeof(c_type * nr_elts))
 #end g_new
 
+# from glib-2.0/glib/gstrfuncs.h:
+
+libglib2.g_strfreev.argtypes = (ct.POINTER(ct.c_char_p),)
+libglib2.g_strfreev.restype = None
+
+# from glib-2.0/glib/gslist.h:
+
+libglib2.g_slist_free.argtypes = (ct.c_void_p,)
+libglib2.g_slist_free.restype = None
+
 # from glib-2.0/glib/gtype.h:
 
 libgobject2.g_type_from_name.argtypes = (ct.c_char_p,)
@@ -542,6 +563,90 @@ libgegl.gegl_filter_op.argtypes = (GEGL.BufferPtr, ct.c_char_p, ct.c_void_p) # v
 libgegl.gegl_filter_op.restype = GEGL.BufferPtr
 libgegl.gegl_render_op.argtypes = (GEGL.BufferPtr, GEGL.BufferPtr, ct.c_char_p, ct.c_void_p) # varargs!
 libgegl.gegl_render_op.restype = None
+# don’t bother with xxx_valist forms
+
+# from gegl-0.4/gegl-node.h:
+
+libgegl.gegl_node_new.argtypes = ()
+libgegl.gegl_node_new.restype = ct.c_void_p
+libgegl.gegl_node_new_child.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p) # varargs!
+libgegl.gegl_node_new_child.restype = ct.c_void_p
+libgegl.gegl_node_connect_from.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_connect_from.restype = ct.c_bool
+libgegl.gegl_node_connect_to.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_connect_to.restype = ct.c_bool
+libgegl.gegl_node_link.restype = None
+libgegl.gegl_node_link.argtypes = (ct.c_void_p, ct.c_void_p)
+libgegl.gegl_node_link_many.restype = None
+libgegl.gegl_node_link_many.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_void_p) # varargs!
+libgegl.gegl_node_disconnect.restype = ct.c_bool
+libgegl.gegl_node_disconnect.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_set.restype = None
+libgegl.gegl_node_set.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p) # varargs!
+libgegl.gegl_node_get.restype = None
+libgegl.gegl_node_get.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p) # varargs!
+libgegl.gegl_node_blit.restype = None
+libgegl.gegl_node_blit.argtypes = (ct.c_void_p, ct.c_double, ct.POINTER(GEGL.Rectangle), BABL.Ptr, ct.c_void_p,  ct.c_int, GEGL.BlitFlags)
+libgegl.gegl_node_blit_buffer.restype = None
+libgegl.gegl_node_blit_buffer.argtypes = (ct.c_void_p, ct.c_void_p, ct.POINTER(GEGL.Rectangle), ct.c_int, GEGL.AbyssPolicy)
+libgegl.gegl_node_process.restype = None
+libgegl.gegl_node_process.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_add_child.restype = ct.c_void_p
+libgegl.gegl_node_add_child.argtypes = (ct.c_void_p, ct.c_void_p)
+libgegl.gegl_node_remove_child.restype = ct.c_void_p
+libgegl.gegl_node_remove_child.argtypes = (ct.c_void_p, ct.c_void_p)
+libgegl.gegl_node_get_parent.restype = ct.c_void_p
+libgegl.gegl_node_get_parent.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_detect.restype = ct.c_void_p
+libgegl.gegl_node_detect.argtypes = (ct.c_void_p, ct.c_int, ct.c_int)
+libgegl.gegl_node_find_property.restype = ct.POINTER(GParamSpec)
+libgegl.gegl_node_find_property.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_get_bounding_box.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_get_bounding_box.restype = GEGL.Rectangle
+libgegl.gegl_node_get_children.restype = ct.c_void_p
+libgegl.gegl_node_get_children.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_get_consumers.restype = ct.c_int
+libgegl.gegl_node_get_consumers.argtypes = (ct.c_void_p, ct.c_char_p, ct.POINTER(ct.POINTER(ct.c_void_p)), ct.POINTER(ct.POINTER(ct.c_char_p)))
+libgegl.gegl_node_get_input_proxy.restype = ct.c_void_p
+libgegl.gegl_node_get_input_proxy.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_get_operation.restype = ct.c_char_p
+libgegl.gegl_node_get_operation.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_get_gegl_operation.restype = ct.c_void_p
+libgegl.gegl_node_get_gegl_operation.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_get_output_proxy.restype = ct.c_void_p
+libgegl.gegl_node_get_output_proxy.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_get_producer.restype = ct.c_void_p
+libgegl.gegl_node_get_producer.argtypes = (ct.c_void_p, ct.c_char_p, ct.POINTER(ct.c_char_p))
+libgegl.gegl_node_has_pad.restype = ct.c_bool
+libgegl.gegl_node_has_pad.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_list_input_pads.restype = ct.POINTER(ct.c_char_p)
+libgegl.gegl_node_list_input_pads.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_list_output_pads.restype = ct.POINTER(ct.c_char_p)
+libgegl.gegl_node_list_output_pads.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_create_child.restype = ct.c_void_p
+libgegl.gegl_node_create_child.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_get_property.restype = None
+libgegl.gegl_node_get_property.argtypes = (ct.c_void_p, ct.c_char_p, ct.POINTER(GValue))
+libgegl.gegl_node_set_property.restype = None
+libgegl.gegl_node_set_property.argtypes = (ct.c_void_p, ct.c_char_p, ct.POINTER(GValue))
+libgegl.gegl_node_new_from_xml.restype = ct.c_void_p
+libgegl.gegl_node_new_from_xml.argtypes = (ct.c_char_p, ct.c_char_p)
+libgegl.gegl_node_new_from_file.restype = ct.c_void_p
+libgegl.gegl_node_new_from_file.argtypes = (ct.c_char_p,)
+libgegl.gegl_node_to_xml.restype = ct.c_char_p
+libgegl.gegl_node_to_xml.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_to_xml_full.restype = ct.c_char_p
+libgegl.gegl_node_to_xml_full.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_char_p)
+libgegl.gegl_node_get_passthrough.restype = ct.c_bool
+libgegl.gegl_node_get_passthrough.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_set_passthrough.restype = None
+libgegl.gegl_node_set_passthrough.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_is_graph.restype = ct.c_bool
+libgegl.gegl_node_is_graph.argtypes = (ct.c_void_p,)
+libgegl.gegl_node_progress.restype = None
+libgegl.gegl_node_progress.argtypes = (ct.c_void_p, ct.c_double, ct.c_char_p)
+libgegl.gegl_operation_get_op_version.restype = ct.c_char_p
+libgegl.gegl_operation_get_op_version.argtypes = (ct.c_char_p,)
 # don’t bother with xxx_valist forms
 
 # from gegl-0.4/gegl-init.h:
