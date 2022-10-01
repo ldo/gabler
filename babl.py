@@ -184,7 +184,7 @@ libbabl.babl_fish_get_process.restype = BABL.FishProcess
 
 class Babl :
     "wrapper around a Babl object. Do not instantiate directly: use the" \
-    " format_xxx methods."
+    " class methods."
 
     __slots__ = ("_bablobj", "__weakref__")
 
