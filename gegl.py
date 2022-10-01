@@ -713,6 +713,27 @@ libgegl.gegl_operation_progress.argtypes = (ct.c_void_p, ct.c_double, ct.c_char_
 libgegl.gegl_operation_get_source_space.restype = BABL.Ptr
 libgegl.gegl_operation_get_source_space.argtypes = (ct.c_void_p, ct.c_char_p)
 
+# from gegl-0.4/operation/gegl-operation-context.h:
+
+libgegl.gegl_operation_context_get_target.restype = ct.c_void_p
+libgegl.gegl_operation_context_get_target.argtypes = (ct.c_void_p, ct.c_char_p)
+# gegl_operation_context_get_source deprecated
+libgegl.gegl_operation_context_dup_object.restype = ct.c_void_p
+libgegl.gegl_operation_context_dup_object.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_operation_context_get_object.restype = ct.c_void_p
+libgegl.gegl_operation_context_get_object.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_operation_context_set_object.restype = None
+libgegl.gegl_operation_context_set_object.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p)
+libgegl.gegl_operation_context_take_object.restype = None
+libgegl.gegl_operation_context_take_object.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p)
+libgegl.gegl_operation_context_purge.restype = None
+libgegl.gegl_operation_context_purge.argtypes = (ct.c_void_p,)
+libgegl.gegl_operation_context_get_level.restype = ct.c_int
+libgegl.gegl_operation_context_get_level.argtypes = (ct.c_void_p,)
+# gegl_operation_context_get_output_maybe_in_place,
+# gegl_operation_context_dup_input_maybe_copy, gegl_operation_context_node_get_context
+# documented as for internal use only
+
 # from gegl-0.4/gegl-init.h:
 
 libgegl.gegl_init.argtypes = (ct.POINTER(ct.c_int), ct.POINTER(ct.c_char_p))
@@ -1206,6 +1227,245 @@ def _gegl_node_props_common(funcname, fixedargs, varargs) :
     return \
         func(*all_args)
 #end _gegl_node_props_common
+
+class Operation :
+    "wrapper around a GeglOperation object. Do not instantiate directly;" \
+    " get from Node.gegl_operation property."
+
+    __slots__ = ("_geglobj", "__weakref__")
+
+    _instances = WeakValueDictionary()
+
+    def __new__(celf, _geglobj) :
+        self = celf._instances.get(_geglobj)
+        if self == None :
+            self = super().__new__(celf)
+            self._geglobj = _geglobj
+            celf._instances[_geglobj] = self
+        #end if
+        # Note I do not manage deletion of these objects
+        return \
+            self
+    #end __new__
+
+    def get_invalidated_by_change(self, input_pad, roi) :
+        c_input_pad = str_encode(input_pad)
+        if not isinstance(roi, GEGL.Rectangle) :
+            raise TypeError("roi must be a GEGL.Rectangle")
+        #end if
+        return \
+            libgegl.gegl_operation_get_invalidated_by_change \
+                (self._geglobj, c_input_pad, ct.byref(roi))
+    #end get_invalidated_by_change
+
+    @property
+    def bounding_box(self) :
+        return \
+            libgegl.gegl_node_get_bounding_box(self._geglobj)
+    #end bounding_box
+
+    def source_get_bounding_box(self, pad_name) :
+        c_pad_name = str_encode(pad_name)
+        result = libgegl.gegl_operation_source_get_bounding_box(self._geglobj, c_pad_name)
+        return \
+            result.contents
+    #end source_get_bounding_box
+
+    def get_cached_region(self, roi) :
+        if not isinstance(roi, GEGL.Rectangle) :
+            raise TypeError("roi must be a GEGL.Rectangle")
+        #end if
+        return \
+            libgegl.gegl_operation_get_cached_region(self._geglobj, ct.byref(roi))
+    #end get_cached_region
+
+    def get_required_for_output(self, input_pad, roi) :
+        if not isinstance(roi, GEGL.Rectangle) :
+            raise TypeError("roi must be a GEGL.Rectangle")
+        #end if
+        c_input_pad = str_encode(input_pad)
+        return \
+            libgegl.gegl_operation_get_required_for_output \
+                (self._geglobj, c_input_pad, ct.byref(roi))
+    #end get_required_for_output
+
+    def detect(self, x, y) :
+        result = libgegl.gegl_operation_detect(self._geglobj, x, y)
+        if result != None :
+            result = Node(result)
+        #end if
+        return \
+            result
+    #end detect
+
+    def attach(self, node) :
+        if not isinstance(node, Node) :
+            raise TypeError("node must be a Node")
+        #end if
+        libgegl.gegl_operation_attach(self._geglobj, node._geglobj)
+    #end attach
+
+    def prepare(self) :
+        libgegl.gegl_operation_prepare(self._geglobj)
+    #end prepare
+
+    def process(self, context, output_pad, roi, level) :
+        if not isinstance(context, OperationContext) :
+            raise TypeError("context must be an OperationContext")
+        #end if
+        c_output_pad = str_encode(output_pad)
+        if not isinstance(roi, GEGL.Rectangle) :
+            raise TypeError("roi must be a GEGL.Rectangle")
+        #end if
+        ok = libgegl.gegl_operation_process \
+            (self._geglobj, context._geglobj, ct.byref(roi), level)
+        if not ok :
+            raise RuntimeError("operation process failed")
+        #end if
+    #end process
+
+    def create_pad(self, param_spec) :
+        if not isinstance(param_spec, GParamSpec) :
+            # fixme: does using this type make sense?
+            raise TypeError("param_spec must be an GParamSpec")
+        #end if
+        libgegl.gegl_operation_create_pad(self._geglobj, ct.byref(param_spec))
+    #end create_pad
+
+    def set_format(self, pad_name, format) :
+        if not isinstance(format, Babl) :
+            raise TypeError("format must be a Babl object")
+        #end if
+        c_pad_name = str_encode(pad_name)
+        libgegl.gegl_operation_set_format(self._geglobj, c_pad_name, format._bablobj)
+    #end set_format
+
+    def get_format(self, pad_name) :
+        c_pad_name = str_encode(pad_name)
+        result = libgegl.gegl_operation_get_format(self._geglobj, c_pad_name)
+        if result != None :
+            result = Babl(result)
+        #end if
+        return \
+            result
+    #end get_format
+
+    @property
+    def name(self) :
+        return \
+            str_decode(libgegl.gegl_operation_get_name(self._geglobj))
+    #end name
+
+    def get_source_format(self, pad_name) :
+        c_pad_name = str_encode(pad_name)
+        result = libgegl.gegl_operation_get_source_format(self._geglobj, c_pad_name)
+        if result != None :
+            result = Babl(result)
+        #end if
+        return \
+            result
+    #end get_source_format
+
+    def get_source_node(self, pad_name) :
+        c_pad_name = str_encode(pad_name)
+        result = libgegl.gegl_operation_get_source_node(self._geglobj, c_pad_name)
+        if result != None :
+            result = Node(result)
+        #end if
+        return \
+            result
+    #end get_source_node
+
+    # TODO where to put GeglOperationClass methods?
+    # gegl_operation_class_set_key, gegl_operation_class_get_key,
+    # gegl_operation_class_set_keys, gegl_operation_set_key
+
+    @property
+    def use_opencl(self) :
+        return \
+            libgegl.gegl_operation_use_opencl(self._geglobj)
+    #end use_opencl
+
+    def use_threading(self, roi) :
+        if not isinstance(roi, GEGL.Rectangle) :
+            raise TypeError("roi must be a GEGL.Rectangle")
+        #end if
+        return \
+            libgegl.gegl_operation_use_threading(self._geglobj, ct.byref(roi))
+    #end use_threading
+
+    @property
+    def pixels_per_thread(self) :
+        return \
+            libgegl.gegl_operation_get_pixels_per_thread(self._geglobj)
+    #end pixels_per_thread
+
+    def invalidate(self, roi, clear_cache) :
+        if not isinstance(roi, GEGL.Rectangle) :
+            raise TypeError("roi must be a GEGL.Rectangle")
+        #end if
+        libgegl.gegl_operation_invalidate(self._geglobj, ct.byref(roi), clear_cache)
+    #end invalidate
+
+    # cl_set_kernel_args NYI
+
+    def progress(self, progress, message) :
+        c_message = str_encode(message)
+        libgegl.gegl_operation_progress(self._geglobj, progress, c_message)
+    #end progress
+
+    def get_source_space(self, in_pad) :
+        c_in_pad = str_encode(in_pad)
+        result = libgegl.gegl_operation_get_source_space(self._geglobj, c_in_pad)
+        if result != None :
+            result = Babl(result)
+        #end if
+        return \
+            result
+    #end get_source_space
+
+#end Operation
+
+class OperationContext :
+
+    __slots__ = ("_geglobj", "__weakref__")
+
+    _instances = WeakValueDictionary()
+
+    def __new__(celf, _geglobj) :
+        self = celf._instances.get(_geglobj)
+        if self == None :
+            self = super().__new__(celf)
+            self._geglobj = _geglobj
+            celf._instances[_geglobj] = self
+        #end if
+        # Note I do not manage deletion of these objects
+        return \
+            self
+    #end __new__
+
+    def get_target(self, padname) :
+        c_padname = str_encode(padname)
+        result = libgegl.gegl_operation_context_get_target(self._geglobj, c_padname)
+        if result != None :
+            result = Buffer(result)
+        #end if
+        return \
+            result
+    #end get_target
+
+    # TODO: dup_object, get_object, set_object, take_object
+
+    def purge(self) :
+        libgegl.gegl_operation_context_purge(self._geglobj)
+    #end purge
+
+    def get_level(self) :
+        return \
+            libgegl.gegl_operation_context_get_level(self._geglobj)
+    #end get_level
+
+#end OperationContext
 
 class Node :
     "wrapper around a GEGL node object. Do not instantiate directly:" \
