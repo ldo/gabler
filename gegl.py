@@ -1573,7 +1573,7 @@ class Node :
         if len(args) == 0 :
             raise TypeError("must specify at least one other node in chain")
         #end if
-        if not all(instance(s, Node) for s in args) :
+        if not all(isinstance(s, Node) for s in args) :
             raise TypeError("sinks must all be Node objects")
         #end if
         if len(args) > 1 :
@@ -1581,7 +1581,7 @@ class Node :
             func = type(basefunc).from_address(ct.addressof(basefunc))
             func.restype = basefunc.restype
             func.argtypes = (ct.c_void_p,) * (len(args) + 2)
-            all_args = (self._geglobj) + tuple(a._geglobj for a in args) + (None,)
+            all_args = (self._geglobj,) + tuple(a._geglobj for a in args) + (None,)
             ok = func(*all_args)
         else :
             ok = libgegl.gegl_node_link(self._geglobj, args[0]._geglobj)
