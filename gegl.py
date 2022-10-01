@@ -286,6 +286,12 @@ class GEGL :
 
     SamplerGetFun = ct.CFUNCTYPE(None, SamplerPtr, ct.c_double, ct.c_double, ct.POINTER(BufferMatrix2), ct.c_void_p, AbyssPolicy)
 
+    # from gegl-0.4/operation/gegl-operation.h:
+
+    class OperationClass(ct.Structure) :
+        _fields_ = [] # TODO
+    #end OperationClass
+
 #end GEGL
 
 libglib2 = ct.cdll.LoadLibrary("libglib-2.0.so.0")
@@ -649,6 +655,63 @@ libgegl.gegl_node_progress.argtypes = (ct.c_void_p, ct.c_double, ct.c_char_p)
 libgegl.gegl_operation_get_op_version.restype = ct.c_char_p
 libgegl.gegl_operation_get_op_version.argtypes = (ct.c_char_p,)
 # don’t bother with xxx_valist forms
+
+# from gegl-0.4/operation/gegl-operation.h:
+libgegl.gegl_operation_get_invalidated_by_change.restype = GEGL.Rectangle
+libgegl.gegl_operation_get_invalidated_by_change.argtypes = (ct.c_void_p, ct.c_char_p, ct.POINTER(GEGL.Rectangle))
+libgegl.gegl_operation_get_bounding_box.restype = GEGL.Rectangle
+libgegl.gegl_operation_get_bounding_box.argtypes = (ct.c_void_p,)
+libgegl.gegl_operation_source_get_bounding_box.restype = ct.POINTER(GEGL.Rectangle)
+libgegl.gegl_operation_source_get_bounding_box.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_operation_get_cached_region.restype = GEGL.Rectangle
+libgegl.gegl_operation_get_cached_region.argtypes = (ct.c_void_p, ct.POINTER(GEGL.Rectangle))
+libgegl.gegl_operation_get_required_for_output.restype = GEGL.Rectangle
+libgegl.gegl_operation_get_required_for_output.argtypes = (ct.c_void_p, ct.c_char_p, ct.POINTER(GEGL.Rectangle))
+libgegl.gegl_operation_detect.restype = ct.c_void_p
+libgegl.gegl_operation_detect.argtypes = (ct.c_void_p, ct.c_int, ct.c_int)
+libgegl.gegl_operation_attach.restype = None
+libgegl.gegl_operation_attach.argtypes = (ct.c_void_p, ct.c_void_p)
+libgegl.gegl_operation_prepare.restype = None
+libgegl.gegl_operation_prepare.argtypes = (ct.c_void_p,)
+libgegl.gegl_operation_process.restype = ct.c_bool
+libgegl.gegl_operation_process.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_char_p, ct.POINTER(GEGL.Rectangle), ct.c_int)
+libgegl.gegl_operation_create_pad.restype = None
+libgegl.gegl_operation_create_pad.argtypes = (ct.c_void_p, ct.POINTER(GParamSpec))
+libgegl.gegl_operation_set_format.restype = None
+libgegl.gegl_operation_set_format.argtypes = (ct.c_void_p, ct.c_char_p, BABL.Ptr)
+libgegl.gegl_operation_get_format.restype = BABL.Ptr
+libgegl.gegl_operation_get_format.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_operation_get_name.restype = ct.c_char_p
+libgegl.gegl_operation_get_name.argtypes = (ct.c_void_p,)
+libgegl.gegl_operation_get_source_format.restype = BABL.Ptr
+libgegl.gegl_operation_get_source_format.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_operation_get_source_node.restype = ct.c_void_p
+libgegl.gegl_operation_get_source_node.argtypes = (ct.c_void_p, ct.c_char_p)
+libgegl.gegl_operation_class_set_key.restype = None
+libgegl.gegl_operation_class_set_key.argtypes = (ct.POINTER(GEGL.OperationClass), ct.c_char_p, ct.c_char_p)
+libgegl.gegl_operation_class_get_key.restype = ct.c_char_p
+libgegl.gegl_operation_class_get_key.argtypes = (ct.POINTER(GEGL.OperationClass), ct.c_char_p)
+libgegl.gegl_operation_class_set_keys.restype = None
+libgegl.gegl_operation_class_set_keys.argtypes = (ct.POINTER(GEGL.OperationClass), ct.c_void_p) # varargs!
+libgegl.gegl_operation_set_key.restype = None
+libgegl.gegl_operation_set_key.argtypes = (ct.POINTER(ct.c_char_p), ct.c_char_p, ct.c_char_p)
+libgegl.gegl_operation_use_opencl.restype = ct.c_bool
+libgegl.gegl_operation_use_opencl.argtypes = (ct.c_void_p,)
+libgegl.gegl_operation_use_threading.restype = ct.c_bool
+libgegl.gegl_operation_use_threading.argtypes = (ct.c_void_p, ct.POINTER(GEGL.Rectangle))
+libgegl.gegl_operation_get_pixels_per_thread.restype = ct.c_double
+libgegl.gegl_operation_get_pixels_per_thread.argtypes = (ct.c_void_p,)
+libgegl.gegl_operation_invalidate.restype = None
+libgegl.gegl_operation_invalidate.argtypes = (ct.c_void_p, ct.POINTER(GEGL.Rectangle), ct.c_bool)
+libgegl.gegl_operation_cl_set_kernel_args.restype = ct.c_bool
+libgegl.gegl_operation_cl_set_kernel_args.argtypes = (ct.c_void_p, ct.c_void_p, ct.POINTER(ct.c_int), ct.POINTER(ct.c_int))
+# gegl_can_do_inplace_processing marked as “should not be used externally”
+# gegl_object_set_has_forked, gegl_object_get_has_forked, gegl_temp_buffer
+# seem to be for plugin use
+libgegl.gegl_operation_progress.restype = None
+libgegl.gegl_operation_progress.argtypes = (ct.c_void_p, ct.c_double, ct.c_char_p)
+libgegl.gegl_operation_get_source_space.restype = BABL.Ptr
+libgegl.gegl_operation_get_source_space.argtypes = (ct.c_void_p, ct.c_char_p)
 
 # from gegl-0.4/gegl-init.h:
 
@@ -1456,7 +1519,15 @@ class Node :
             result
     #end operation
 
-    # TODO: get_gegl_operation
+    @property
+    def gegl_operation(self) :
+        result = libgegl.gegl_node_get_gegl_operation(self._geglobj)
+        if result != None :
+            result = Operation(result)
+        #end if
+        return \
+            result
+    #end gegl_operation
 
     def get_output_proxy(self, pad_name) :
         c_pad_name = str_encode(pad_name)
