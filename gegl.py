@@ -1205,12 +1205,12 @@ def _gegl_node_props_common(funcname, fixedargs, varargs) :
     func.restype = basefunc.restype
     fixedargtypes = basefunc.argtypes
     fixedargtypes = fixedargtypes[:-1] # drop trailing null-pointer arg, re-added below
-    if len(fixedargs) + 1 != len(fixedargtypes) :
+    if len(fixedargs) != len(fixedargtypes) :
         raise TypeError \
           (
                 "expecting %d fixed args, got %d"
             %
-                (len(fixedargtypes), len(fixedargs) + 1)
+                (len(fixedargtypes), len(fixedargs))
           )
     #end if
     all_arg_types = list(fixedargtypes)
