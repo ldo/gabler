@@ -569,7 +569,7 @@ libgegl.gegl_render_op.restype = None
 
 libgegl.gegl_node_new.argtypes = ()
 libgegl.gegl_node_new.restype = ct.c_void_p
-libgegl.gegl_node_new_child.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p) # varargs!
+libgegl.gegl_node_new_child.argtypes = (ct.c_void_p, ct.c_void_p) # varargs!
 libgegl.gegl_node_new_child.restype = ct.c_void_p
 libgegl.gegl_node_connect_from.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p, ct.c_char_p)
 libgegl.gegl_node_connect_from.restype = ct.c_bool
@@ -582,9 +582,10 @@ libgegl.gegl_node_link_many.argtypes = (ct.c_void_p, ct.c_void_p, ct.c_void_p) #
 libgegl.gegl_node_disconnect.restype = ct.c_bool
 libgegl.gegl_node_disconnect.argtypes = (ct.c_void_p, ct.c_char_p)
 libgegl.gegl_node_set.restype = None
-libgegl.gegl_node_set.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p) # varargs!
-libgegl.gegl_node_get.restype = None
-libgegl.gegl_node_get.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p) # varargs!
+libgegl.gegl_node_set.argtypes = (ct.c_void_p, ct.c_void_p) # varargs!
+# don’t try using this
+#libgegl.gegl_node_get.restype = None
+#libgegl.gegl_node_get.argtypes = (ct.c_void_p, ct.c_void_p) # varargs!
 libgegl.gegl_node_blit.restype = None
 libgegl.gegl_node_blit.argtypes = (ct.c_void_p, ct.c_double, ct.POINTER(GEGL.Rectangle), BABL.Ptr, ct.c_void_p,  ct.c_int, GEGL.BlitFlags)
 libgegl.gegl_node_blit_buffer.restype = None
@@ -599,7 +600,7 @@ libgegl.gegl_node_get_parent.restype = ct.c_void_p
 libgegl.gegl_node_get_parent.argtypes = (ct.c_void_p,)
 libgegl.gegl_node_detect.restype = ct.c_void_p
 libgegl.gegl_node_detect.argtypes = (ct.c_void_p, ct.c_int, ct.c_int)
-libgegl.gegl_node_find_property.restype = ct.POINTER(GParamSpec)
+libgegl.gegl_node_find_property.restype = ct.c_void_p # ct.POINTER(GParamSpec)
 libgegl.gegl_node_find_property.argtypes = (ct.c_void_p, ct.c_char_p)
 libgegl.gegl_node_get_bounding_box.argtypes = (ct.c_void_p,)
 libgegl.gegl_node_get_bounding_box.restype = GEGL.Rectangle
@@ -661,22 +662,22 @@ libgegl.gegl_exit.restype = None
 #-
 
 class GTYPE(enum.Enum) :
-    "wrapper around some basic GType values with conversions from Python."
+    "wrapper around some basic GType values with conversions to/from Python."
 
-    # (code, ct_type, conv_to_ct)
-    CHAR = (G_TYPE_CHAR, ct.c_char, ident)
-    UCHAR = (G_TYPE_UCHAR, ct.c_ubyte, ident)
-    BOOLEAN = (G_TYPE_BOOLEAN, ct.c_bool, ident)
-    INT = (G_TYPE_INT, ct.c_int, ident)
-    UINT = (G_TYPE_UINT, ct.c_uint, ident)
-    LONG = (G_TYPE_LONG, ct.c_long, ident)
-    ULONG = (G_TYPE_ULONG, ct.c_ulong, ident)
-    INT64 = (G_TYPE_INT64, ct.c_int64, ident)
-    UINT64 = (G_TYPE_UINT64, ct.c_uint64, ident)
-    FLOAT = (G_TYPE_FLOAT, ct.c_float, ident)
-    DOUBLE = (G_TYPE_DOUBLE, ct.c_double, ident)
-    STRING = (G_TYPE_STRING, ct.c_char_p, str_encode)
-    POINTER = (G_TYPE_POINTER, ct.c_void_p, ident)
+    # (code, ct_type, ct_conv, gvalue_field)
+    CHAR = (G_TYPE_CHAR, ct.c_char, ident, "v_uint")
+    UCHAR = (G_TYPE_UCHAR, ct.c_ubyte, ident, "v_uint")
+    BOOLEAN = (G_TYPE_BOOLEAN, ct.c_bool, ident, "v_uint")
+    INT = (G_TYPE_INT, ct.c_int, ident, "v_int")
+    UINT = (G_TYPE_UINT, ct.c_uint, ident, "v_uint")
+    LONG = (G_TYPE_LONG, ct.c_long, ident, "v_long")
+    ULONG = (G_TYPE_ULONG, ct.c_ulong, ident, "v_ulong")
+    INT64 = (G_TYPE_INT64, ct.c_int64, ident, "v_int64")
+    UINT64 = (G_TYPE_UINT64, ct.c_uint64, ident, "v_uint64")
+    FLOAT = (G_TYPE_FLOAT, ct.c_float, ident, "v_float")
+    DOUBLE = (G_TYPE_DOUBLE, ct.c_double, ident, "v_double")
+    STRING = (G_TYPE_STRING, ct.c_char_p, str_encode, "v_pointer")
+    POINTER = (G_TYPE_POINTER, ct.c_void_p, ident, "v_pointer")
 
     @property
     def code(self) :
@@ -695,6 +696,12 @@ class GTYPE(enum.Enum) :
         return \
             self.value[2]
     #end ct_conv
+
+    @property
+    def gvalue_field(self) :
+        return \
+            self.value[3]
+    #end gvalue_field
 
     def __repr__(self) :
         return \
@@ -837,7 +844,12 @@ def _gegl_op_common(funcname, fixedargs, opname, varargs) :
     fixedargtypes = basefunc.argtypes
     fixedargtypes = fixedargtypes[:-1] # drop trailing null-pointer arg, re-added below
     if len(fixedargs) + 1 != len(fixedargtypes) :
-        raise TypeError("expecting %d fixed args, got %d" % (len(fixedargtypes), len(fixedargs) + 1))
+        raise TypeError \
+          (
+                "expecting %d fixed args, got %d"
+            %
+                (len(fixedargtypes), len(fixedargs) + 1)
+          )
     #end if
     propconvert = dict \
       (
@@ -949,6 +961,8 @@ class Buffer :
 #end Buffer
 
 class Colour :
+    "wrapper around a GEGL colour object. Do not instantiate directly:" \
+    " get from create method."
 
     __slots__ = ("_geglobj", "__weakref__")
 
@@ -1047,6 +1061,529 @@ class Colour :
     # TODO spec_color, get_default
 
 #end Colour
+
+def _conv_node_prop(value) :
+    "tries to convert a Python value to a suitable GEGL node property type."
+    if isinstance(value, int) :
+        value = int(value)
+        if value < - 1 << 31 or value >= 1 << 31 :
+            # problem with wider ints is that glib has types
+            # “long” and “int64”, and I’m not sure which one to use
+            raise ValueError("assuming only 32-bit ints for now")
+        #end if
+        c_value = value
+        g_type = GTYPE.INT
+    elif isinstance(value, float) :
+        c_value = value
+        g_type = GTYPE.DOUBLE
+    elif isinstance(value, str) :
+        c_value = str_encode(value)
+        g_type = GTYPE.STRING
+    elif isinstance(value, ct.c_void_p) :
+        c_value = value
+        g_type = GTYPE.POINTER
+    else :
+        raise TypeError("cannot convert property type %s" % type(value).__name__)
+    #end if
+    return \
+        c_value, g_type
+#end _conv_node_prop
+
+def _gegl_node_props_common(funcname, fixedargs, varargs) :
+    "common wrapper to handle calls to the various gegl_node_xxx routines that" \
+    " take variable argument lists. In each case, the variable part consists" \
+    " of a sequence of name-value pairs terminated by a NULL."
+    if varargs != None :
+        if isinstance(varargs, dict) :
+            if not all(isinstance(k, str) for k in varargs) :
+                raise TypeError("varargs keys must be strings")
+            #end if
+            varargs = tuple((k, v) for k, v in varargs.items())
+        elif isinstance(varargs, (tuple, list)) :
+            if not all \
+              (
+                isinstance(a, (tuple, list)) and len(a) == 2 and isinstance(a[0], str)
+                for a in varargs
+              ) \
+            :
+                raise TypeError("varargs must be sequence of name/value pairs")
+            #end if
+        else :
+            raise TypeError("varargs must be dict, list, tuple or None")
+        #end if
+    else :
+        varargs = ()
+    #end if
+    basefunc = getattr(libgegl, funcname)
+      # fixed part of type info already set up
+    func = type(basefunc).from_address(ct.addressof(basefunc))
+      # same entry point, but can have entirely different arg/result types
+    func.restype = basefunc.restype
+    fixedargtypes = basefunc.argtypes
+    fixedargtypes = fixedargtypes[:-1] # drop trailing null-pointer arg, re-added below
+    if len(fixedargs) + 1 != len(fixedargtypes) :
+        raise TypeError \
+          (
+                "expecting %d fixed args, got %d"
+            %
+                (len(fixedargtypes), len(fixedargs) + 1)
+          )
+    #end if
+    all_arg_types = list(fixedargtypes)
+    all_args = list(fixedargs)
+    for propname, value in varargs :
+        c_value, g_type = _conv_node_prop(value)
+        c_propname = str_encode(propname)
+        all_args.extend((c_propname, c_value))
+        all_arg_types.extend((ct.c_char_p, g_type.ct_type))
+    #end for
+    all_arg_types.append(ct.c_void_p) # null to mark end of arg list
+    all_args.append(None)
+    func.argtypes = tuple(all_arg_types)
+    return \
+        func(*all_args)
+#end _gegl_node_props_common
+
+class Node :
+    "wrapper around a GEGL node object. Do not instantiate directly:" \
+    " get from create methods."
+
+    __slots__ = ("_geglobj", "__weakref__")
+
+    _instances = WeakValueDictionary()
+
+    def __new__(celf, _geglobj) :
+        self = celf._instances.get(_geglobj)
+        if self == None :
+            self = super().__new__(celf)
+            self._geglobj = _geglobj
+            celf._instances[_geglobj] = self
+        else :
+            # don’t need extra reference generated by caller
+            libgobject2.g_object_unref(_geglobj)
+        #end if
+        return \
+            self
+    #end __new__
+
+    def __del__(self) :
+        if self._geglobj != None :
+            libgobject2.g_object_unref(self._geglobj)
+            self._geglobj = None
+        #end if
+    #end __del__
+
+    @classmethod
+    def create(celf, props = None) :
+        if props != None :
+            result = _gegl_node_props_common("gegl_node_new_child", (None,), props)
+        else :
+            result = libgegl.gegl_node_new()
+        #end if
+        return \
+            celf(result)
+    #end create
+
+    @classmethod
+    def create_from_xml(celf, xmldata, path_root) :
+        c_xmldata = str_encode(xmldata)
+        c_path_root = str_encode(path_root)
+        result = libgegl.gegl_node_new_from_xml(c_xmldata, c_path_root)
+        if result == None :
+            raise RuntimeError("failed to create node from XML file")
+        #end if
+        return \
+            celf(result)
+    #end create_from_xml
+
+    @classmethod
+    def create_from_file(celf, path) :
+        c_path = str_encode(path)
+        result = libgegl.gegl_node_new_from_file(c_path)
+        if result == None :
+            raise RuntimeError("failed to create node from file")
+        #end if
+        return \
+            celf(result)
+    #end create_from_file
+
+    def new_child(self, props) :
+        return \
+            type(self)(_gegl_node_props_common("gegl_node_new_child", (self._geglobj,), props))
+    #end new_child
+
+    def connect_from(sink, input_pad_name, source, output_pad_name) :
+        if not isinstance(source, Node) :
+            raise TypeError("source must be a Node")
+        #end if
+        if not libgegl.gegl_node_connect_from \
+          (
+            sink._geglobj, str_encode(input_pad_name),
+            source._geglobj, str_encode(output_pad_name)
+          ) :
+            raise RuntimeError \
+              (
+                "could not connect their %s to my %s" % (output_pad_name, input_pad_name)
+              )
+        #end if
+    #end connect_from
+
+    def connect_to(source, output_pad_name, sink, input_pad_name) :
+        if not isinstance(sink, Node) :
+            raise TypeError("sink must be a Node")
+        #end if
+        if not libgegl.gegl_node_connect_to \
+          (
+            source._geglobj, str_encode(output_pad_name),
+            sink._geglobj, str_encode(input_pad_name)
+          ) :
+            raise RuntimeError \
+              (
+                "could not connect my %s to their %s" % (output_pad_name, input_pad_name)
+              )
+        #end if
+    #end connect_to
+
+    def link(self, *args) :
+        "does a gegl_node_link or a gegl_node_link_many call, depending on how" \
+        " many args are passed."
+        if len(args) == 0 :
+            raise TypeError("must specify at least one other node in chain")
+        #end if
+        if not all(instance(s, Node) for s in args) :
+            raise TypeError("sinks must all be Node objects")
+        #end if
+        if len(args) > 1 :
+            basefunc = libgegl.gegl_node_link_many
+            func = type(basefunc).from_address(ct.addressof(basefunc))
+            func.restype = basefunc.restype
+            func.argtypes = (ct.c_void_p,) * (len(args) + 2)
+            all_args = (self._geglobj) + tuple(a._geglobj for a in args) + (None,)
+            ok = func(*all_args)
+        else :
+            ok = libgegl.gegl_node_link(self._geglobj, args[0]._geglobj)
+        #end if
+        if not ok :
+            raise RuntimeError("node link failed")
+        #end if
+    #end link
+
+    def disconnect(self, input_pad) :
+        return \
+            libgegl.gegl_node_disconnect(self._geglobj, str_encode(input_pad))
+    #end disconnect
+
+    def set(self, props) :
+        _gegl_node_props_common("gegl_node_set", (), props)
+    #end set
+
+    def get(self, propnames) :
+        return \
+            dict \
+              (
+                (propname, self[propname])
+                for propname in propnames
+              )
+    #end get
+
+    def __setitem__(self, propname, propvalue) :
+        "allows setting property values via «node»[«propname»] = «propvalue»"
+        c_value, g_type = _conv_node_prop(propvalue)
+        gval = GValue()
+        gval.g_type = g_type.code
+        gval.data[0] = c_value
+        c_propname = str_encode(propname)
+        libgegl.gegl_node_set_property(self._geglobj, c_propname, ct.byref(gval))
+        libgobject2.g_value_unset(ct.byref(gval)) # need to free any memory?
+    #end __setitem__
+
+    def __getitem__(self, propname) :
+        "allows retrieving property values via «node»[«propname»]"
+        gval = GValue()
+        libgegl.gegl_node_get_property(self._geglobj, str_encode(propname), ct.byref(gval))
+        if gval.g_type not in GTYPE.from_code :
+            raise TypeError("cannot convert property %s of type %d" % (propname, gval.g_type))
+        #end if
+        valtype = GTYPE.from_code[gval.g_type]
+        value = getattr(gval.data[0], valtype.gvalue_field)
+        if valtype == GTYPE.STRING :
+            value = str_decode(ct.cast(value, ct.c_char_p))
+        #end if
+        libgobject2.g_value_unset(ct.byref(gval)) # need to free any memory?
+        return \
+            value
+    #end __getitem__
+
+    def blit(self, scale : float, roi : GEGL.Rectangle, format : Babl, destination_buf : Buffer, rowstride : int, flags : GEGL.BlitFlags) :
+        if not isinstance(format, Babl) :
+            raise TypeError("format must be a Babl object")
+        #end if
+        if destination_buf != None and not isinstance(destination_buf, Buffer) :
+            raise TypeError("destination_buf must be a Buffer object")
+        #end if
+        libgegl.gegl_node_blit.restype \
+          (
+            self._geglobj,
+            scale, roi,
+            format._bablobj,
+            (lambda : None, lambda : destination_buf._geglobj)[destination_buf != None](),
+            rowstride, flags
+          )
+    #end blit
+
+    def blit_buffer(self, buffer, roi : GEGL.Rectangle, level : int, absyss_policy : GEGL.AbyssPolicy) :
+        if not isinstance(buffer, Buffer) :
+            raise TypeError("buffer must be a Buffer object")
+        #end if
+        libgegl.gegl_node_blit_buffer(self._geglobj, buffer._geglobj, roi, level, abyss_policy)
+    #end blit_buffer
+
+    def process(self) :
+        libgegl.gegl_node_process(self._geglobj)
+    #end process
+
+    def add_child(self, child) :
+        if not isinstance(child, Node) :
+            raise TypeError("child must be a Node")
+        #end if
+        libgegl.gegl_node_add_child(self._geglobj, child._geglobj)
+    #end add_child
+
+    def remove_child(self, child) :
+        if not isinstance(child, Node) :
+            raise TypeError("child must be a Node")
+        #end if
+        libgegl.gegl_node_remove_child(self._geglobj, child._geglobj)
+    #end remove_child
+
+    @property
+    def parent(self) :
+        result = libgegl.gegl_node_get_parent(self._geglobj)
+        if result != None :
+            result = type(self)(result)
+        #end if
+        return \
+            result
+    #end parent
+
+    def detect(self, x : int, y : int) :
+        result = libgegl.gegl_node_detect(self._geglobj, x, y)
+        if result != None :
+            result = type(self)(result)
+        #end if
+        return \
+            result
+    #end detect
+
+    def find_property(self, property_name) :
+        c_propname = str_encode(property_name)
+        c_result = libgegl.gegl_node_find_property(self._geglobj, c_propname)
+        if c_result != None :
+            c_result = ct.cast(c_result, ct.POINTER(GParamSpec)).contents
+            result = dict \
+              (
+                (k, getattr(c_result, k))
+                for k in ("g_type_instance", "flags", "value_type", "owner_type")
+              )
+            result["name"] = str_decode(c_result.name)
+        else :
+            result = None
+        #end if
+        return \
+            result
+    #end find_property
+
+    @property
+    def bounding_box(self) :
+        return \
+           libgegl.gegl_node_get_bounding_box(self._geglobj)
+    #end bounding_box
+
+    @property
+    def children(self) :
+        c_result = libgegl.gegl_node_get_children(self._geglobj)
+        celf = type(self)
+        result = []
+        elt = c_result
+        while elt != None :
+            elt = elt.contents
+            result.append(celf(elt.data))
+            elt = elt.next
+        #end while
+        libglib2.g_slist_free(c_result)
+        return \
+            result
+    #end children
+
+    def get_nr_consumers(self, output_pad) :
+        c_output_pad = str_encode(output_pad)
+        return \
+            libgegl.gegl_node_get_consumers(self._geglobj, c_output_pad, None, None)
+    #end get_nr_consumers
+
+    def get_consumers(self, output_pad) :
+        c_output_pad = str_encode(output_pad)
+        c_nodes = ct.POINTER(ct.c_void_p)()
+        c_pads = ct.POINTER(ct.c_char_p)()
+        nr_consumers = libgegl.gegl_node_get_consumers \
+            (self._geglobj, c_output_pad, ct.byref(c_nodes), ct.byref(c_pads))
+        nodes = []
+        pads = []
+        celf = type(self)
+        for i in range(nr_consumers) :
+            nodes.append(celf(c_nodes[i]))
+            pads.append(str_decode(c_pads[i]))
+        #end for
+        libglib2.g_free(ct.cast(c_nodes, ct.c_void_p))
+        libglib2.g_free(ct.cast(c_pads, ct.c_void_p))
+        return \
+            nodes, pads
+    #end get_consumers
+
+    def get_input_proxy(self, pad_name) :
+        c_pad_name = str_encode(pad_name)
+        return \
+            type(self)(libgegl.gegl_node_get_input_proxy(self._geglobj, c_pad_name))
+    #end get_input_proxy
+
+    @property
+    def operation(self) :
+        result = libgegl.gegl_node_get_operation(self._geglobj)
+        if result != None :
+            result = str_decode(result)
+        #end if
+        return \
+            result
+    #end operation
+
+    # TODO: get_gegl_operation
+
+    def get_output_proxy(self, pad_name) :
+        c_pad_name = str_encode(pad_name)
+        return \
+            type(self)(libgegl.gegl_node_get_output_proxy(self._geglobj, c_pad_name))
+    #end get_output_proxy
+
+    def get_producer(self, input_pad_name) :
+        c_input_pad_name = str_encode(input_pad_name)
+        c_output_pad_name = ct.POINTER(ct.c_char_p)()
+        c_prod = libgegl.gegl_node_get_producer(self._geglobj, c_input_pad_name, ct.byref(c_output_pad_name))
+        if c_prod != None :
+            result = (type(self)(c_prod), str_decode(c_output_pad_name[0]))
+        else :
+            result = (None, None)
+        #end if
+        return \
+            result
+    #end get_producer
+
+    def has_pad(self, pad_name) :
+        c_pad_name = str_encode(pad_name)
+        return \
+            libgegl.gegl_node_has_pad(self._geglobj, c_pad_name)
+    #end has_pad
+
+    @property
+    def input_pads(self) :
+        c_result = libgegl.gegl_node_list_input_pads(self._geglobj)
+        c_result = ct.cast(c_result, ct.c_void_p).value
+        result = []
+        if c_result != None :
+            p_elt = c_result
+            while True :
+                elt = ct.cast(p_elt, ct.c_void_p).value
+                if elt == None :
+                    break
+                result.append(str_decode(ct.cast(elt, ct.c_char_p).contents.value))
+                p_elt += ct.sizeof(ct.c_void_p)
+            #end while
+            libglib2.g_strfreev(c_result)
+        #end if
+        return \
+            result
+    #end input_pads
+
+    @property
+    def output_pads(self) :
+        c_result = libgegl.gegl_node_list_output_pads(self._geglobj)
+        c_result = ct.cast(c_result, ct.c_void_p).value
+        result = []
+        if c_result != None :
+            p_elt = c_result
+            while True :
+                elt = ct.cast(p_elt, ct.c_void_p).value
+                if elt == None :
+                    break
+                result.append(str_decode(ct.cast(elt, ct.c_char_p).contents.value))
+                p_elt += ct.sizeof(ct.c_void_p)
+            #end while
+            libglib2.g_strfreev(c_result)
+        #end if
+        return \
+            result
+    #end output_pads
+
+    def create_child(self, operation) :
+        c_operation = str_encode(operation)
+        return \
+            type(self)(libgegl.gegl_node_create_child(self._geglobj, c_operation))
+    #end create_child
+
+    def to_xml(self, path_root) :
+        c_path_root = str_encode(path_root)
+        xml = libgegl.gegl_node_to_xml(self._geglobj, c_path_root)
+        return \
+            str_decode(xml)
+    #end to_xml
+
+    def to_xml_full(self, tail, path_root) :
+        if tail != None :
+            if not isinstance(tail, Node) :
+                raise TypeError("tail must be a Node")
+            #end if
+            c_tail = tail._geglobj
+        else :
+            c_tail = None
+        #end if
+        c_path_root = str_encode(path_root)
+        xml = libgegl.gegl_node_to_xml_full(self._geglobj, c_tail, c_path_root)
+        return \
+            str_decode(xml)
+    #end to_xml_full
+
+    @property
+    def passthrough(self) :
+        return \
+            libgegl.gegl_node_get_passthrough(self._geglobj)
+    #end passthrough
+
+    @passthrough.setter
+    def passthrough(self, passthrough : bool) :
+        libgegl.gegl_node_set_passthrough(self._geglobj. passthrough)
+    #end passthrough
+
+    @property
+    def is_graph(self) :
+        return \
+            libgegl.gegl_node_is_graph(self._geglobj)
+    #end is_graph
+
+    def progress(self, progress : float, message) :
+        c_message = str_encode(message)
+        libgegl.gegl_node_progress(self._geglobj, progress, c_message)
+    #end progress
+
+#end Node
+
+def get_op_version(op_name) :
+    c_op_name = str_encode(op_name)
+    result = libgegl.gegl_operation_get_op_version(c_op_name)
+    if not bool(result) :
+        raise RuntimeError("failed to get version for op %s" % op_name)
+    #end if
+    return \
+        str_decode(result)
+#end get_op_version
 
 def _init_dynamic_types() :
 
