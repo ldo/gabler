@@ -1585,12 +1585,9 @@ class Node :
             func.restype = basefunc.restype
             func.argtypes = (ct.c_void_p,) * (len(args) + 2)
             all_args = (self._geglobj,) + tuple(a._geglobj for a in args) + (None,)
-            ok = func(*all_args)
+            func(*all_args)
         else :
-            ok = libgegl.gegl_node_link(self._geglobj, args[0]._geglobj)
-        #end if
-        if not ok :
-            raise RuntimeError("node link failed")
+            libgegl.gegl_node_link(self._geglobj, args[0]._geglobj)
         #end if
     #end link
 
