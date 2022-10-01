@@ -1166,6 +1166,9 @@ def _conv_node_prop(value) :
     elif isinstance(value, ct.c_void_p) :
         c_value = value
         g_type = GTYPE.POINTER
+    elif hasattr(value, "_geglobj") :
+        c_value = value._geglobj
+        g_type = GTYPE.POINTER
     else :
         raise TypeError("cannot convert property type %s" % type(value).__name__)
     #end if
