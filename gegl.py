@@ -1634,7 +1634,8 @@ class Node :
         else :
             self._prop_save.pop(propname, None)
         #end if
-        libgobject2.g_value_unset(ct.byref(gval)) # need to free any memory?
+        #libgobject2.g_value_unset(ct.byref(gval))
+          # don’t do this: triggers abort with “free(): invalid pointer”
     #end __setitem__
 
     def __getitem__(self, propname) :
@@ -1647,7 +1648,7 @@ class Node :
         valtype = GTYPE.from_code[gval.g_type]
         value = getattr(gval.data[0], valtype.gvalue_field)
         if valtype == GTYPE.STRING :
-            value = str_decode(ct.cast(value, ct.c_char_p))
+            value = str_decode(ct.cast(value, ct.c_char_p).value)
         #end if
         libgobject2.g_value_unset(ct.byref(gval)) # need to free any memory?
         return \
