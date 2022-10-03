@@ -1621,7 +1621,6 @@ class Node :
 
     def __setitem__(self, propname, propvalue) :
         "allows setting property values via «node»[«propname»] = «propvalue»"
-        # FIXME: doesn’t work yet
         c_value, g_type, c_save = _conv_node_prop(propvalue, True)
         gval = GValue()
         gval.g_type = g_type.code
