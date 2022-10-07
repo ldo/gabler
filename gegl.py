@@ -1999,7 +1999,7 @@ def exit() :
 
 def _atexit() :
     # disable all __del__ methods at process termination to avoid segfaults
-    for cłass in Buffer, Colour :
+    for cłass in Buffer, Colour, Node :
         delattr(cłass, "__del__")
     #end for
 #end _atexit
