@@ -185,10 +185,32 @@ GClosureNotify = ct.CFUNCTYPE(None, ct.c_void_p, ct.c_void_p)
 
 # from glib-2.0/gobject/gsignal.h:
 
+GSignalFlags = ct.c_uint
+# values for GSignalFlags:
+G_SIGNAL_RUN_FIRST = 1 << 0
+G_SIGNAL_RUN_LAST = 1 << 1
+G_SIGNAL_RUN_CLEANUP = 1 << 2
+G_SIGNAL_NO_RECURSE = 1 << 3
+G_SIGNAL_DETAILED = 1 << 4
+G_SIGNAL_ACTION = 1 << 5
+G_SIGNAL_NO_HOOKS = 1 << 6
+G_SIGNAL_MUST_COLLECT = 1 << 7
+G_SIGNAL_DEPRECATED = 1 << 8
+G_SIGNAL_ACCUMULATOR_FIRST_RUN = 1 << 17
+
 GConnectFlags = ct.c_uint
 # values for GConnectFlags:
 G_CONNECT_AFTER = 1 << 0
 G_CONNECT_SWAPPED = 1 << 1
+
+GSignalMatchType = ct.c_uint
+# values for GSignalMatchType:
+G_SIGNAL_MATCH_ID = 1 << 0
+G_SIGNAL_MATCH_DETAIL = 1 << 1
+G_SIGNAL_MATCH_CLOSURE = 1 << 2
+G_SIGNAL_MATCH_FUNC = 1 << 3
+G_SIGNAL_MATCH_DATA = 1 << 4
+G_SIGNAL_MATCH_UNBLOCKED = 1 << 5
 
 class GEGL :
     "useful constants and types from include files."
