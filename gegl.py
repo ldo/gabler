@@ -31,6 +31,10 @@ str_decode = lambda s : s.decode()
 
 ident = lambda x : x
 
+#+
+# Begin consts and types from glib/gobject includes
+#-
+
 # from /usr/lib/«arch»/glib-2.0/include/glibconfig.h:
 
 gsize = ct.c_ulong
@@ -53,6 +57,46 @@ _GSList._fields_ = \
 # from glib-2.0/gobject/glib-types.h:
 
 GType = gsize
+
+# from glib-2.0/gobject/gvaluecollector.h:
+
+class GTypeCValue(ct.Union) :
+    _fields_ = \
+        [
+            ("v_int", ct.c_int),
+            ("v_long", ct.c_long),
+            ("v_int64", ct.c_int64),
+            ("v_double", ct.c_double),
+            ("v_pointer", ct.c_void_p),
+        ]
+#end GTypeCValue
+
+# from glib-2.0/gobject/gvalue.h:
+
+class GValue(ct.Structure) :
+
+    class _data_union(ct.Union) :
+        _fields_ = \
+            [
+                ("v_int", ct.c_int),
+                ("v_uint", ct.c_uint),
+                ("v_long", ct.c_long),
+                ("v_ulong", ct.c_ulong),
+                ("v_int64", ct.c_int64),
+                ("v_uint64", ct.c_uint64),
+                ("v_float", ct.c_float),
+                ("v_double", ct.c_double),
+                ("v_pointer", ct.c_void_p),
+            ]
+    #end _data_union
+
+    _fields_ = \
+        [
+            ("g_type", GType),
+            ("data", 2 * _data_union),
+        ]
+
+#end GValue
 
 # from glib-2.0/gobject/gtype.h:
 
@@ -115,32 +159,91 @@ class GTypeQuery(ct.Structure) :
         ]
 #end GTypeQuery
 
-# from glib-2.0/gobject/gvalue.h:
+class GTypePlugin(ct.Structure) :
+  # placeholder for objects that implement the GTypePlugin interface
+  _fields_ = []
+#end GTypePlugin
 
-class GValue(ct.Structure) :
+GBaseInitFunc = ct.CFUNCTYPE(None, ct.c_void_p)
+GBaseFinalizeFunc = ct.CFUNCTYPE(None, ct.c_void_p)
+GClassInitFunc = ct.CFUNCTYPE(None, ct.c_void_p, ct.c_void_p)
+GClassFinalizeFunc = ct.CFUNCTYPE(None, ct.c_void_p, ct.c_void_p)
+GInstanceInitFunc = ct.CFUNCTYPE(None, ct.c_void_p, ct.c_void_p)
+GInterfaceInitFunc = ct.CFUNCTYPE(None, ct.c_void_p, ct.c_void_p)
+GInterfaceFinalizeFunc = ct.CFUNCTYPE(None, ct.c_void_p, ct.c_void_p)
+GTypeClassCacheFunc = ct.CFUNCTYPE(ct.c_bool, ct.c_void_p, ct.POINTER(GTypeClass))
+GTypeInterfaceCheckFunc = ct.CFUNCTYPE(None, ct.c_void_p, ct.c_void_p)
 
-    class _data_union(ct.Union) :
-        _fields_ = \
-            [
-                ("v_int", ct.c_int),
-                ("v_uint", ct.c_uint),
-                ("v_long", ct.c_long),
-                ("v_ulong", ct.c_ulong),
-                ("v_int64", ct.c_int64),
-                ("v_uint64", ct.c_uint64),
-                ("v_float", ct.c_float),
-                ("v_double", ct.c_double),
-                ("v_pointer", ct.c_void_p),
-            ]
-    #end _data_union
+GTypeFundamentalFlags = ct.c_uint
+# values for GTypeFundamentalFlags:
+G_TYPE_FLAG_CLASSED = 1 << 0
+G_TYPE_FLAG_INSTANTIATABLE = 1 << 1
+G_TYPE_FLAG_DERIVABLE = 1 << 2
+G_TYPE_FLAG_DEEP_DERIVABLE = 1 << 3
 
+GTypeFlags = ct.c_uint
+# values for GTypeFlags:
+G_TYPE_FLAG_NONE = 0 # since 2.74
+G_TYPE_FLAG_ABSTRACT = 1 << 4
+G_TYPE_FLAG_VALUE_ABSTRACT = 1 << 5
+G_TYPE_FLAG_FINAL = 1 << 6 # since 2.70
+
+class GTypeValueTable(ct.Structure) :
     _fields_ = \
         [
-            ("g_type", GType),
-            ("data", 2 * _data_union),
+            ("value_init", ct.CFUNCTYPE(None, ct.POINTER(GValue))),
+            ("value_free", ct.CFUNCTYPE(None, ct.POINTER(GValue))),
+            ("value_copy", ct.CFUNCTYPE(None, ct.POINTER(GValue), ct.POINTER(GValue))),
+            # varargs functionality (optional)
+            ("value_peek_pointer", ct.CFUNCTYPE(ct.c_void_p, ct.POINTER(GValue))),
+            ("collect_format", ct.c_char_p),
+            ("collect_value",
+                ct.CFUNCTYPE(ct.c_char_p,
+                    ct.POINTER(GValue), ct.c_uint, ct.POINTER(GTypeCValue), ct.c_uint)
+            ),
+            ("lcopy_format", ct.c_char_p),
+            ("lcopy_value",
+                ct.CFUNCTYPE(ct.c_char_p,
+                    ct.POINTER(GValue), ct.c_uint, ct.POINTER(GTypeCValue), ct.c_uint)
+            ),
         ]
+#end GTypeValueTable
 
-#end GValue
+class GTypeInfo(ct.Structure) :
+    _fields_ = \
+        [
+            ("class_size", ct.c_uint16),
+
+            ("base_init", GBaseInitFunc),
+            ("base_finalize", GBaseFinalizeFunc),
+
+            ("class_init", GClassInitFunc),
+            ("class_finalize", GClassFinalizeFunc),
+            ("class_data", ct.c_void_p),
+
+            ("instance_size", ct.c_uint16),
+            ("n_preallocs", ct.c_uint16),
+            ("instance_init", GInstanceInitFunc),
+
+            ("value_table", ct.POINTER(GTypeValueTable)),
+        ]
+#end GTypeInfo
+
+class GTypeFundamentalInfo(ct.Structure) :
+    _fields_ = \
+        [
+            ("type_flags", GTypeFundamentalFlags),
+        ]
+#end GTypeFundamentalInfo
+
+class GInterfaceInfo(ct.Structure) :
+    _fields_ = \
+        [
+            ("interface_init", GInterfaceInitFunc),
+            ("interface_finalize", GInterfaceFinalizeFunc),
+            ("interface_data", ct.c_void_p),
+        ]
+#end GInterfaceInfo
 
 # from glib-2.0/gobject/gparam.h:
 
@@ -180,8 +283,18 @@ class GParamSpec(ct.Structure) :
 
 # from glib-2.0/gobject/gclosure.h:
 
+class GClosure(ct.Structure) :
+  _fields_ = []
+#end GClosure
+
+GClosureMarshal = ct.CFUNCTYPE(None, ct.POINTER(GClosure), ct.POINTER(GValue), ct.c_uint, ct.POINTER(GValue), ct.c_void_p, ct.c_void_p)
+
 GCallback = ct.CFUNCTYPE(None) # actually might take args and return result, depending on context
 GClosureNotify = ct.CFUNCTYPE(None, ct.c_void_p, ct.c_void_p)
+
+# from glib-2.0/glib/gquark.h
+
+GQuark = ct.c_uint32
 
 # from glib-2.0/gobject/gsignal.h:
 
@@ -211,6 +324,26 @@ G_SIGNAL_MATCH_CLOSURE = 1 << 2
 G_SIGNAL_MATCH_FUNC = 1 << 3
 G_SIGNAL_MATCH_DATA = 1 << 4
 G_SIGNAL_MATCH_UNBLOCKED = 1 << 5
+
+GSignalCMarshaller = GClosureMarshal
+
+class GSignalInvocationHint(ct.Structure) :
+    _fields_ = \
+        [
+            ("signal_id", ct.c_uint),
+            ("detail", GQuark),
+            ("run_type", GSignalFlags),
+        ]
+#end GSignalInvocationHint
+
+GSignalAccumulator = ct.CFUNCTYPE(ct.c_bool,
+    ct.POINTER(GSignalInvocationHint), ct.POINTER(GValue), ct.POINTER(GValue), ct.c_void_p)
+
+#+
+# End of consts and types from glib/gobject includes
+#
+# Begin consts and types from GEGL-specific includes
+#-
 
 class GEGL :
     "useful constants and types from include files."
@@ -321,7 +454,7 @@ libgobject2 = ct.cdll.LoadLibrary("libgobject-2.0.so.0")
 libgegl = ct.cdll.LoadLibrary("libgegl-0.4.so.0")
 
 #+
-# Routine arg/result types
+# Routine arg/result types, GLib/GObject-specific
 #-
 
 # from glib-2.0/glib/gmem.h:
@@ -349,6 +482,14 @@ libglib2.g_slist_free.restype = None
 
 # from glib-2.0/glib/gtype.h:
 
+libgobject2.g_type_register_static.argtypes = (GType, ct.c_char_p, ct.POINTER(GTypeInfo), GTypeFlags)
+libgobject2.g_type_register_static.restype = GType
+libgobject2.g_type_register_static_simple.argtypes = (GType, ct.c_char_p, ct.c_uint, GClassInitFunc, ct.c_uint, GInstanceInitFunc, GTypeFlags)
+libgobject2.g_type_register_static_simple.restype = GType
+libgobject2.g_type_register_dynamic.argtypes = (GType, ct.c_char_p, ct.POINTER(GTypePlugin), GTypeFlags)
+libgobject2.g_type_register_dynamic.restype = GType
+libgobject2.g_type_register_fundamental.argtypes = (GType, ct.c_char_p, ct.POINTER(GTypeInfo), ct.POINTER(GTypeFundamentalInfo), GTypeFlags)
+libgobject2.g_type_register_fundamental.restype = GType
 libgobject2.g_type_from_name.argtypes = (ct.c_char_p,)
 libgobject2.g_type_from_name.restype = GType
 libgobject2.g_type_query.argtypes = (GType, ct.POINTER(GTypeQuery))
@@ -443,6 +584,10 @@ libgobject2.g_param_spec_unref.restype = None
 
 # from glib-2.0/gobject/gobject.h:
 
+libgobject2.g_object_setv.argtypes = (ct.c_void_p, ct.c_uint, ct.POINTER(ct.c_char_p), ct.POINTER(GValue))
+libgobject2.g_object_setv.restype = None
+libgobject2.g_object_getv.argtypes = (ct.c_void_p, ct.c_uint, ct.POINTER(ct.c_char_p), ct.POINTER(GValue))
+libgobject2.g_object_getv.restype = None
 libgobject2.g_object_ref.argtypes = (ct.c_void_p,)
 libgobject2.g_object_ref.restype = ct.c_void_p
 libgobject2.g_object_unref.argtypes = (ct.c_void_p,)
@@ -456,8 +601,16 @@ libgobject2.g_object_set_data_full.restype = None
 
 # from glib-2.0/gobject/gsignal.h:
 
+libgobject2.g_signal_newv.restype = ct.c_uint
+libgobject2.g_signal_newv.argtypes = \
+    (ct.c_char_p, GType, GSignalFlags, ct.POINTER(GClosure), GSignalAccumulator,
+    ct.c_void_p, GSignalCMarshaller, GType, ct.c_uint, ct.POINTER(GType))
 libgobject2.g_signal_connect_data.argtypes = (ct.c_void_p, ct.c_char_p, ct.c_void_p, ct.c_void_p, ct.c_void_p, GConnectFlags)
 libgobject2.g_signal_connect_data.restype = ct.c_ulong
+
+#+
+# Routine arg/result types, GEGL-specific
+#-
 
 # from gegl-0.4/gegl-color.h:
 
