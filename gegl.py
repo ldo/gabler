@@ -2174,7 +2174,7 @@ def exit() :
 
 def _atexit() :
     # disable all __del__ methods at process termination to avoid segfaults
-    for cłass in Buffer, Colour, Node :
+    for cłass in GObject, Buffer, Colour, Node :
         delattr(cłass, "__del__")
     #end for
 #end _atexit
