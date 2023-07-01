@@ -98,7 +98,7 @@ class GValue(ct.Structure) :
 
 #end GValue
 
-# from glib-2.0/gobject/gtype.h:
+# from glib-2.0/gobject/gtypes.h:
 
 G_TYPE_FUNDAMENTAL_SHIFT = 2
 G_TYPE_MAKE_FUNDAMENTAL = lambda t : t << G_TYPE_FUNDAMENTAL_SHIFT
@@ -480,7 +480,7 @@ libglib2.g_strfreev.restype = None
 libglib2.g_slist_free.argtypes = (ct.c_void_p,)
 libglib2.g_slist_free.restype = None
 
-# from glib-2.0/glib/gtype.h:
+# from glib-2.0/glib/gtypes.h:
 
 libgobject2.g_type_register_static.argtypes = (GType, ct.c_char_p, ct.POINTER(GTypeInfo), GTypeFlags)
 libgobject2.g_type_register_static.restype = GType
